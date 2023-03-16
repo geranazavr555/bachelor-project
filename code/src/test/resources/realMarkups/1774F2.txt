@@ -1,0 +1,23 @@
+// https://codeforces.com/problemset/problem/1774/F2
+
+enum operation_id maps int32 {
+    CREATE = 1;
+    DECREASE = 2;
+    REPEAT_ALL = 3;
+}
+
+struct operation {
+    operation_id op;
+    int32 x if op != REPEAT_ALL;
+    eoln;
+}
+
+struct input {
+    int32 n;
+    eoln;
+    operation[n] operations;
+}
+
+struct output {
+    int32 alive_count;
+}

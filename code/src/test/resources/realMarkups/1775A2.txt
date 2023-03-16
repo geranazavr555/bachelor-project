@@ -1,0 +1,24 @@
+// https://codeforces.com/problemset/problem/1775/A2
+
+struct testcase {
+    string s;
+    eoln;
+}
+
+struct input {
+    int32 t;
+    eoln;
+    testcase[t] testcases;
+}
+
+struct testcase_output {
+    string a;
+    string b;
+    string c;
+    eoln;
+}
+
+struct output {
+    testcase_output[t] testcase_outputs;
+}
+

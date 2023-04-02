@@ -1,0 +1,12 @@
+struct B {
+    int32 x;
+}
+
+struct A {
+    B[i] iter j bb;
+}
+
+struct input {
+    int32 a;
+    A[a] iter i aa;
+}

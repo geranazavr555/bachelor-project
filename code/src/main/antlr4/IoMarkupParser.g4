@@ -9,36 +9,36 @@ options {
     tokenVocab = IoMarkupLexer;
 }
 
-ioMarkup: (struct | enum | mapper)* EOF;
+ioMarkup: (namedStruct)* EOF;
 
-mapper: MAPPER typeArgument MAPS varType NAME LPAR NAME RPAR LBRACE mapperBody RBRACE;
+namedStruct: NAME namedStructParameters? struct;
 
-mapperBody: ; // Not implemented yet todo
+namedStructParameters: LPAR (parameterDeclaration (COMMA parameterDeclaration)*)? RPAR;
 
-typeArgument: NAME typeArgumentParams? typeArgumentArrayParam?;
+parameterDeclaration: NAME COLON namedType;
 
-typeArgumentParams: LESS NAME (COMMA NAME)* GREATER;
+struct: LBRACE structItem* RBRACE;
 
-typeArgumentArrayParam: LBRACKET NAME RBRACKET;
+structItem: conditionalAlternative | variableDeclaration | ioModifier;
 
-enum: ENUM NAME MAPS varType LBRACE enumItem* RBRACE;
+conditionalAlternative: IF LPAR plExpression RPAR struct (ELSE struct)?;
 
-enumItem: NAME ASSIGN plExpression SEMICOLON;
+ioModifier: EOLN_MODIFIER SEMICOLON;
 
-struct: STRUCT NAME LBRACE structItem* RBRACE;
+variableDeclaration: NAME COLON variableType variableConstraint? SEMICOLON;
 
-structItem: (varDeclaration | ioModifier) SEMICOLON;
+variableType: arrayOfUnnamedStruct | (namedType namedTypeParameters? arrayParameters*);
 
-ioModifier: EOLN_MODIFIER;
+arrayOfUnnamedStruct: ARRAY arrayParameters+ OF struct;
 
-varDeclaration: varType varMapper? NAME condition?;
+variableConstraint: PIPE plExpression;
 
-varMapper: MAPPER NAME;
+namedType: NAME;
 
-varType: NAME typeParams? arrayParam?;
+namedTypeParameters: LPAR (plExpression (COMMA plExpression)*)? RPAR;
 
-typeParams: LESS plExpression (COMMA plExpression)* GREATER;
+arrayParameters: LBRACKET arrayIterationRange (COMMA SEP ASSIGN sepValue) RBRACKET;
 
-arrayParam: LBRACKET plExpression RBRACKET (ITER NAME)?;
+arrayIterationRange: NAME ASSIGN plExpression DOT DOT plExpression;
 
-condition: IF plExpression;
+sepValue: STRING | CHAR;

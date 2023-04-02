@@ -1,23 +1,15 @@
-// https://codeforces.com/problemset/problem/1774/F2
+# https://codeforces.com/problemset/problem/1774/F2
 
-enum operation_id maps int32 {
-    CREATE = 1;
-    DECREASE = 2;
-    REPEAT_ALL = 3;
+input {
+    n: int32 | 1 <= n <= 8 * 10^5;
+    ops: array[i=1..n, sep='\n'] of {
+        op: int32 | 1 <= op <= 3;
+        if (op < 3) {
+            x: int32 | 1 <= x <= 10^9;
+        }
+    };
 }
 
-struct operation {
-    operation_id op;
-    int32 x if op != REPEAT_ALL;
-    eoln;
-}
-
-struct input {
-    int32 n;
-    eoln;
-    operation[n] operations;
-}
-
-struct output {
-    int32 alive_count;
+output {
+    alive: uint32 | alive < 998'244'353;
 }

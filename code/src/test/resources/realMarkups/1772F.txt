@@ -1,44 +1,30 @@
-// https://codeforces.com/problemset/problem/1772/F
+# https://codeforces.com/problemset/problem/1772/F
 
-mapper string<n> maps int32[n] m(s) {
-    // some code
+picture (n: int32, m: int32) {
+    s: string[i=1..n, sep='\n'] | len(s[i]) == m && s[i] matches /(01)+/ #forall{j=1..m}(s[i][j] in ['0', '1']);
 }
 
-struct picture_line {
-    string<n> mapper m line;
+input {
+    n: int32 | 3 <= n <= 30;
+    m: int32 | 3 <= m <= 30;
+    k: int32 | 0 <= k <= 100;
     eoln;
+
+    pictures: picture(n, m)[i=1..n, sep="\n\n"];
 }
 
-struct picture {
+output {
+    startPicIndex: int32 | 1 <= startPicIndex <= k + 1;
     eoln;
-    picture_line[n] lines; 
-}
-
-struct input {
-    int32 n;
-    int32 m;
-    int32 k;
+    q: uint32 | 0 <= q <= 10^7;
     eoln;
-    picture[k + 1] pictures;
-}
-
-enum operation_type maps int32 {
-    PAINT = 1;
-    COPY = 2;
-}
-
-struct operation {
-    operation_type op;
-    int32 x if op == PAINT;
-    int32 y if op == PAINT;
-    int32 i if op == COPY;
-    eoln;
-}
-
-struct output {
-    int32 start_pic_index;
-    eoln;
-    int32 q;
-    eoln;
-    operation[q] operations;
+    ops: array[j=1..q, sep='\n'] of {
+        op: int32;
+        if (op == 1) {
+            x: int32 | 2 <= x <= n - 1;
+            y: int32 | 2 <= y <= m - 1;
+        } else {
+            i: int32 | 1 <= i <= k + 1;
+        }
+    };
 }

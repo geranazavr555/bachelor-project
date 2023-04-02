@@ -1,0 +1,44 @@
+// https://codeforces.com/problemset/problem/1772/F
+
+mapper string<n> maps int32[n] m(s) {
+    // some code
+}
+
+struct picture_line {
+    string<n> mapper m line;
+    eoln;
+}
+
+struct picture {
+    eoln;
+    picture_line[n] lines; 
+}
+
+struct input {
+    int32 n;
+    int32 m;
+    int32 k;
+    eoln;
+    picture[k + 1] pictures;
+}
+
+enum operation_type maps int32 {
+    PAINT = 1;
+    COPY = 2;
+}
+
+struct operation {
+    operation_type op;
+    int32 x if op == PAINT;
+    int32 y if op == PAINT;
+    int32 i if op == COPY;
+    eoln;
+}
+
+struct output {
+    int32 start_pic_index;
+    eoln;
+    int32 q;
+    eoln;
+    operation[q] operations;
+}

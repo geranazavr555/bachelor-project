@@ -1,24 +1,21 @@
-// https://codeforces.com/problemset/problem/1775/A2
+# https://codeforces.com/problemset/problem/1775/A2
 
-struct testcase {
-    string s;
+testcase {
+    s: string | 1 <= len(s) <= 2 * 10^5;
+}
+
+input {
+    t: int32 | 1 <= t <= 10^4;
     eoln;
+    testcases: testcase[i=1..t, sep='\n'];
 }
 
-struct input {
-    int32 t;
-    eoln;
-    testcase[t] testcases;
+testcaseOutput {
+    a: string;
+    b: string;
+    c: string;
 }
 
-struct testcase_output {
-    string a;
-    string b;
-    string c;
-    eoln;
+output {
+    testcaseOutputs: testcaseOutput[i=1..t, sep='\n'];
 }
-
-struct output {
-    testcase_output[t] testcase_outputs;
-}
-

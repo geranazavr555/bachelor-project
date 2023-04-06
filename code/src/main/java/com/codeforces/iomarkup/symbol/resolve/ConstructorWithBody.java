@@ -18,6 +18,11 @@ public class ConstructorWithBody extends Constructor {
         super(name, arguments);
     }
 
+    public ConstructorWithBody(String name, List<ConstructorArgument> arguments, List<ConstructorItem> body) {
+        this(name, arguments);
+        this.body.addAll(body);
+    }
+
     public void addBodyItem(ConstructorItem item) {
         body.add(item);
     }

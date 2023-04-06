@@ -1,11 +1,13 @@
 package com.codeforces.iomarkup.symbol.resolve;
 
 import com.codeforces.iomarkup.pl.PlExpression;
+import lombok.Getter;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@Getter
 public class ArrayParameters {
     private final Variable iterationVarName;
     private final PlExpression iterationStartExpression;

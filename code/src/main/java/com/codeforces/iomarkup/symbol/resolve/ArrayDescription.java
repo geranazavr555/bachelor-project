@@ -1,8 +1,11 @@
 package com.codeforces.iomarkup.symbol.resolve;
 
+import lombok.Getter;
+
 import java.util.List;
 
 public abstract class ArrayDescription<T> implements VariableDescription {
+    @Getter
     private final List<ArrayParameters> arrayParameters;
     private final T component;
 

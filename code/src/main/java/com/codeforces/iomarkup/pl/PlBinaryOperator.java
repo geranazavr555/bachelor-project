@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
+@Getter
 public class PlBinaryOperator extends PlExpression {
     private final Op op;
     private final List<PlExpression> expressions;

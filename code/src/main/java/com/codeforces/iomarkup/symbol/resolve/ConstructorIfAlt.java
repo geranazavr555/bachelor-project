@@ -2,12 +2,14 @@ package com.codeforces.iomarkup.symbol.resolve;
 
 import com.codeforces.iomarkup.pl.PlExpression;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.util.Collections;
 import java.util.List;
 
 @AllArgsConstructor
 public class ConstructorIfAlt implements ConstructorItem {
+    @Getter
     private final PlExpression conditionalExpression;
     private final List<ConstructorItem> trueItems;
     private final List<ConstructorItem> falseItems;

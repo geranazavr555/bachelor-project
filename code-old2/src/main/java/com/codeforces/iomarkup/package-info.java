@@ -1,4 +1,0 @@
-@ParametersAreNonnullByDefault
-package com.codeforces.iomarkup;
-
-import javax.annotation.ParametersAreNonnullByDefault;

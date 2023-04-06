@@ -3,7 +3,7 @@ package com.codeforces.iomarkup.symbol.resolve;
 import com.codeforces.iomarkup.antlr.IoMarkupParser;
 import com.codeforces.iomarkup.antlr.IoMarkupParserBaseVisitor;
 import com.codeforces.iomarkup.pl.PlExpression;
-import com.codeforces.iomarkup.pl.PlExpressionVisitor;
+import com.codeforces.iomarkup.pl.PlExpressionBuildVisitor;
 import com.codeforces.iomarkup.symbol.ConstructorArgument;
 import com.codeforces.iomarkup.symbol.Symbol;
 import com.codeforces.iomarkup.symbol.scope.Scope;
@@ -16,6 +16,7 @@ import java.util.List;
 public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
     private final Scope globalScope;
     private final List<Scope> scopeStack = new ArrayList<>();
+    private final List<VarPathItem> varPath = new ArrayList<>();
     private Symbol currentSymbol = null;
 
     private Scope scope() {
@@ -28,6 +29,14 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
 
     private void popScope() {
         scopeStack.remove(scopeStack.size() - 1);
+    }
+
+    private void pushVarPathItem(VarPathItem varPathItem) {
+        varPath.add(varPathItem);
+    }
+
+    private void popVarPathItem() {
+        varPath.remove(varPath.size() - 1);
     }
 
     public ResolveSymbolsVisitor(Scope globalScope) {
@@ -50,6 +59,7 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
 
         currentSymbol = constructor;
         pushScope();
+        pushVarPathItem(new VarPathItem(currentSymbol.getName(), false));
         for (ConstructorArgument argument : constructor.getArguments()) {
             NamedType type = scope().getNamedType(argument.getType());
             if (type == null)
@@ -58,10 +68,11 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
             if (type.type() instanceof StructType)
                 currentSymbol.addRequirement(globalScope.getConstructor(type.getName()));
 
-            scope().pushVariable(new Variable(argument.getName(), type.type()));
+            scope().pushVariable(new Variable(argument.getName(), type.type(), List.of()));
         }
 
         visitStruct(ctx.struct()).forEach(constructor::addBodyItem);
+        popVarPathItem();
         popScope();
         currentSymbol = null;
 
@@ -92,7 +103,7 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
 
     @Override
     public ConstructorIfAlt visitConditionalAlternative(IoMarkupParser.ConditionalAlternativeContext ctx) {
-        var plExpression = new PlExpressionVisitor(scope()).visitPlExpression(ctx.plExpression());
+        var plExpression = new PlExpressionBuildVisitor(scope()).visitPlExpression(ctx.plExpression());
         pushScope();
         var trueItems = visitStruct(ctx.struct(0));
         popScope();
@@ -115,21 +126,35 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
         if (scope().containsName(name))
             throw new RuntimeException();
 
+        if (ctx.variableType().arrayOfUnnamedStruct() != null)
+            pushVarPathItem(new VarPathItem(name, false));
+
         var variableDescription = visitVariableType(ctx.variableType());
-        var variable = new Variable(name, variableDescription, null);
+
+        if (ctx.variableType().arrayOfUnnamedStruct() != null)
+            popVarPathItem();
+
+        var variable = new Variable(name, variableDescription, null, List.copyOf(varPath));
         if (ctx.variableConstraint() != null) {
             pushScope();
             scope().pushVariable(variable);
             variable = new Variable(
                     ctx.NAME().getText(),
                     variableDescription,
-                    visitVariableConstraint(ctx.variableConstraint())
+                    visitVariableConstraint(ctx.variableConstraint()),
+                    List.copyOf(varPath)
             );
             popScope();
         }
 
-        if (variableDescription instanceof ArrayDescription<?>)
+        if (variableDescription instanceof ArrayDescription<?> arrayDescription) {
             popScope();
+            for (var arrayParam : arrayDescription.getArrayParameters()) {
+                String expectedName = arrayParam.getIterationVarName().getName();
+                assert expectedName.equals(varPath.get(varPath.size() - 1).name());
+                popVarPathItem();
+            }
+        }
 
         return variable;
     }
@@ -156,7 +181,7 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
         }
 
         if (arrayParameters != null) {
-            result = new NamedStructArrayDescription(arrayParameters, result);
+            result = new NamedTypeArrayDescription(arrayParameters, result);
         }
         return result;
     }
@@ -171,7 +196,7 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
 
     @Override
     public PlExpression visitVariableConstraint(IoMarkupParser.VariableConstraintContext ctx) {
-        return new PlExpressionVisitor(scope()).visitPlExpression(ctx.plExpression());
+        return new PlExpressionBuildVisitor(scope()).visitPlExpression(ctx.plExpression());
     }
 
     @Override
@@ -187,7 +212,7 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
 
     @Override
     public List<PlExpression> visitNamedTypeParameters(IoMarkupParser.NamedTypeParametersContext ctx) {
-        var plExpressionVisitor = new PlExpressionVisitor(scope());
+        var plExpressionVisitor = new PlExpressionBuildVisitor(scope());
         return ctx.plExpression().stream().map(plExpressionVisitor::visitPlExpression).toList();
     }
 
@@ -197,15 +222,16 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
         if (scope().containsName(iterationVarName))
             throw new RuntimeException();
 
-        var plExpressionVisitor = new PlExpressionVisitor(scope());
+        var plExpressionVisitor = new PlExpressionBuildVisitor(scope());
 
         var startIterationExpression =
                 plExpressionVisitor.visitPlExpression(ctx.arrayIterationRange().plExpression(0));
         var stopIterationExpression =
                 plExpressionVisitor.visitPlExpression(ctx.arrayIterationRange().plExpression(1));
 
-        var iterationVariable = new Variable(iterationVarName, PrimitiveType.INT32);
+        var iterationVariable = new Variable(iterationVarName, PrimitiveType.INT32, List.of());
         scope().pushVariable(iterationVariable);
+        pushVarPathItem(new VarPathItem(iterationVarName, true));
         return new ArrayParameters(
                 iterationVariable,
                 startIterationExpression,

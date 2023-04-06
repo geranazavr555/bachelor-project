@@ -2,12 +2,14 @@ package com.codeforces.iomarkup.pl;
 
 import com.codeforces.iomarkup.type.TypeCharacteristic;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
 @AllArgsConstructor
+@Getter
 public class PlUnaryOperator extends PlExpression {
     private final Op op;
     private final PlExpression expression;

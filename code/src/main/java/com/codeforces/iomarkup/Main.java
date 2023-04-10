@@ -2,10 +2,7 @@ package com.codeforces.iomarkup;
 
 import com.codeforces.iomarkup.antlr.IoMarkupLexer;
 import com.codeforces.iomarkup.antlr.IoMarkupParser;
-import com.codeforces.iomarkup.generation.impl.cpp.CppGraderReadTranslator;
-import com.codeforces.iomarkup.generation.impl.cpp.CppGraderWriteTranslator;
-import com.codeforces.iomarkup.generation.impl.cpp.CppStructDeclarationsTranslator;
-import com.codeforces.iomarkup.generation.impl.cpp.CppTestlibValidatorTranslator;
+import com.codeforces.iomarkup.generation.impl.cpp.*;
 import com.codeforces.iomarkup.symbol.FindGlobalSymbolsVisitor;
 import com.codeforces.iomarkup.symbol.resolve.ResolveSymbolsVisitor;
 import com.codeforces.iomarkup.symbol.scope.Scope;
@@ -69,6 +66,41 @@ public class Main {
                     return 0;
                 }
                 """);
-        
+
+        System.out.println("/////////////////////////////////////// CHECKER //");
+
+        System.out.println("""
+                #include <bits/stdc++.h>
+                #include "testlib.h"
+                
+                using namespace std;
+                
+                """);
+
+        structTranslator = new CppStructDeclarationsTranslator(globalScope);
+        structTranslator.translateToList().forEach(System.out::println);
+
+        var testlibCheckerTranslator = new CppTestlibCheckerTranslator(globalScope, globalScope.getConstructors());
+        testlibCheckerTranslator.translateToList().forEach(System.out::println);
+
+        System.out.println("""
+                input_t input;
+                 
+                typedef output_t AnsType;
+                
+                AnsType readAns(InStream& stream) {
+                    output_t output = read_output(stream);
+                    return output;
+                }
+                
+                int main(int argc, char *argv[]) {
+                    registerTestlibCmd(argc, argv);
+                    input = read_input(inf);
+                    AnsType pa_answer = readAns(ouf);
+                    AnsType jury_answer = readAns(ans);
+                
+                    return 0;
+                }
+                """);
     }
 }

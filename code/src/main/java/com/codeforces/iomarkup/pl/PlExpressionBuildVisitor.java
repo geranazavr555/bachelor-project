@@ -149,7 +149,7 @@ public class PlExpressionBuildVisitor extends IoMarkupParserBaseVisitor<PlExpres
         assert PlBinaryOperator.Op.SUBTRACTION.getAssociativity() == PlBinaryOperator.Associativity.LEFT;
 
         PlExpression expression = visitPlImplMultiplicativeBinary(ctx.plImplMultiplicativeBinary(0));
-        for (int i = 0; i < ctx.plImplAdditiveOp().size() - 1; i++) {
+        for (int i = 0; i < ctx.plImplAdditiveOp().size(); i++) {
             PlBinaryOperator.Op op;
             if (ctx.plImplAdditiveOp(i).PLUS() != null)
                 op = PlBinaryOperator.Op.ADDITION;

@@ -1,30 +1,31 @@
 # https://codeforces.com/problemset/problem/1772/F
 
 picture (n: int32, m: int32) {
-    s: string[i=1..n, sep='\n'] | len(s[i]) == m && s[i] matches /(01)+/ #forall{j=1..m}(s[i][j] in ['0', '1']);
+    s: string[i=1..n, sep='\n'] | len(s[i]) == m;
 }
 
 input {
-    n: int32 | 3 <= n <= 30;
-    m: int32 | 3 <= m <= 30;
-    k: int32 | 0 <= k <= 100;
+    n: int32 | 3 <= n && n <= 30;
+    m: int32 | 3 <= m && m <= 30;
+    k: int32 | 0 <= k && k <= 100;
+    eoln;
     eoln;
 
-    pictures: picture(n, m)[i=1..n, sep="\n\n"];
+    pictures: picture(n, m)[i=1..k + 1, sep="\n\n"];
 }
 
 output {
-    startPicIndex: int32 | 1 <= startPicIndex <= k + 1;
+    startPicIndex: int32; # | 1 <= startPicIndex && startPicIndex <= k + 1;
     eoln;
-    q: uint32 | 0 <= q <= 10^7;
+    q: int32 | 0 <= q && q <= 10^7;
     eoln;
     ops: array[j=1..q, sep='\n'] of {
         op: int32;
         if (op == 1) {
-            x: int32 | 2 <= x <= n - 1;
-            y: int32 | 2 <= y <= m - 1;
+            x: int32; # | 2 <= x && x <= n - 1;
+            y: int32; # | 2 <= y && y <= m - 1;
         } else {
-            i: int32 | 1 <= i <= k + 1;
+            i: int32; # | 1 <= i && i <= k + 1;
         }
     };
 }

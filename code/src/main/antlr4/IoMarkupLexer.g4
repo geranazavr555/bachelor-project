@@ -51,10 +51,6 @@ RPAR: ')';
 
 SEP: 'sep';
 EOLN_MODIFIER: 'eoln';
-STRUCT: 'struct';
-ENUM: 'enum';
-MAPS: 'maps';
-MAPPER: 'mapper';
 IF: 'if';
 ITER: 'iter';
 ARRAY: 'array';

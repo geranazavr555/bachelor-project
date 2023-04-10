@@ -107,9 +107,13 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
         pushScope();
         var trueItems = visitStruct(ctx.struct(0));
         popScope();
-        pushScope();
-        var falseItems = visitStruct(ctx.struct(1));
-        popScope();
+        List<ConstructorItem> falseItems;
+        if (ctx.struct().size() > 1) {
+            pushScope();
+            falseItems = visitStruct(ctx.struct(1));
+            popScope();
+        } else
+            falseItems = List.of();
         return new ConstructorIfAlt(plExpression, trueItems, falseItems);
     }
 

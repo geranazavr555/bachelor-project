@@ -1,4 +1,4 @@
-package com.codeforces.iomarkup.generation.impl.cpp;
+package com.codeforces.iomarkup.generation.cpp;
 
 import com.codeforces.iomarkup.symbol.Symbol;
 import com.codeforces.iomarkup.symbol.resolve.*;
@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class CppStructDeclarationsTranslator extends CppTargetTranslator {
+class CppStructDeclarationsTranslator extends CppTargetTranslator {
     private final Set<String> translatedStructs = new HashSet<>();
     private final List<List<String>> structs = new ArrayList<>();
     private final Scope globalScope;

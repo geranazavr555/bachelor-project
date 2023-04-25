@@ -1,4 +1,4 @@
-package com.codeforces.iomarkup.generation.impl.cpp;
+package com.codeforces.iomarkup.generation.cpp;
 
 import com.codeforces.iomarkup.pl.PlExpression;
 import com.codeforces.iomarkup.symbol.resolve.*;
@@ -9,13 +9,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class CppTestlibValidatorTranslator extends CppTargetTranslator {
+class CppTestlibCheckerTranslator extends CppTargetTranslator {
     private final Scope globalScope;
     private final Collection<ConstructorWithBody> constructors;
     private final List<ConstructorWithBody> delayedConstructors;
 
-    public CppTestlibValidatorTranslator(Scope globalScope, Collection<ConstructorWithBody> constructor) {
+    public CppTestlibCheckerTranslator(Scope globalScope, Collection<ConstructorWithBody> constructor) {
         this.globalScope = globalScope;
         this.constructors = constructor;
         this.delayedConstructors = new ArrayList<>();
@@ -62,20 +63,11 @@ public class CppTestlibValidatorTranslator extends CppTargetTranslator {
     private List<String> translateConstructorBody(String constructorName, List<ConstructorItem> constructorBody) {
         List<String> result = new ArrayList<>();
 
-        for (int i = 0; i < constructorBody.size(); ++i) {
-            var item = constructorBody.get(i);
+        for (ConstructorItem item : constructorBody) {
             if (item instanceof Variable variable) {
                 result.addAll(translateVariable(constructorName, variable));
             } else if (item instanceof ConstructorIfAlt ifAlt) {
                 result.addAll(translateIfAlt(constructorName, ifAlt));
-            }
-
-            if (item instanceof IoModifier ioModifier) {
-                result.add("inf.readEoln();");
-            } else if (i + 1 < constructorBody.size()) {
-                var nextItem = constructorBody.get(i + 1);
-                if (!(nextItem instanceof IoModifier))
-                    result.add("inf.readSpace();");
             }
         }
         return result;
@@ -102,15 +94,18 @@ public class CppTestlibValidatorTranslator extends CppTargetTranslator {
                     case FLOAT32, FLOAT64 -> "Double";
                 };
 
-                result.add("%s = inf.read%s();".formatted(varLocate, testlibSuffix));
+                result.add("%s = stream.read%s();".formatted(varLocate, testlibSuffix));
             } else if (type instanceof StringType) {
-                result.add("%s = inf.readToken();".formatted(varLocate));
+                result.add("%s = stream.readToken();".formatted(varLocate));
             } else throw new AssertionError();
         } else if (TypeCharacteristic.STRUCT.is(type)) {
             result.add("%s = read_%s(%s);".formatted(
                     varLocate,
                     type.getName(),
-                    args.stream().map(arg -> new CppPlExpressionTranslator(arg).translate()).collect(Collectors.joining(", "))
+                    Stream.concat(
+                            Stream.of("stream"),
+                            args.stream().map(arg -> new CppPlExpressionTranslator(arg).translate())
+                    ).collect(Collectors.joining(", "))
             ));
         }
         return result;
@@ -134,25 +129,6 @@ public class CppTestlibValidatorTranslator extends CppTargetTranslator {
                 param.getIterationVarName().getName()
         ));
         result.add("{");
-
-        result.add(indent("if (%s != %s)".formatted(
-                param.getIterationVarName().getName(),
-                new CppPlExpressionTranslator(param.getIterationStartExpression()).translate()
-        )));
-        result.add(indent("{"));
-        incIndentLevel();
-
-        for (var ioSeparator : param.getSeparator()) {
-            result.add(indent("inf.read%s();".formatted(
-                    switch (ioSeparator) {
-                        case EOLN -> "Eoln";
-                        case SPACE -> "Space";
-                    }
-            )));
-        }
-
-        decIndentLevel();
-        result.add(indent("}"));
 
         String typeName;
         List<PlExpression> args = List.of();
@@ -222,14 +198,17 @@ public class CppTestlibValidatorTranslator extends CppTargetTranslator {
         return "%s read_%s(%s)".formatted(
                 getTypeName(constructor.getName()),
                 constructor.getName(),
-                constructor.getArguments().stream().map(arg -> {
-                    var type = globalScope.getNamedType(arg.getType()).type();
-                    if (TypeCharacteristic.PREDEFINED.is(type))
-                        return predefinedTypes.get(type.getName()) + " " + arg.getName();
-                    else if (TypeCharacteristic.STRUCT.is(type))
-                        return getTypeName(type.getName()) + " " + arg.getName();
-                    else throw new AssertionError();
-                }).collect(Collectors.joining(", "))
+                Stream.concat(
+                        Stream.of("InStream& stream"),
+                        constructor.getArguments().stream().map(arg -> {
+                            var type = globalScope.getNamedType(arg.getType()).type();
+                            if (TypeCharacteristic.PREDEFINED.is(type))
+                                return predefinedTypes.get(type.getName()) + " " + arg.getName();
+                            else if (TypeCharacteristic.STRUCT.is(type))
+                                return getTypeName(type.getName()) + " " + arg.getName();
+                            else throw new AssertionError();
+                        })
+                ).collect(Collectors.joining(", "))
         );
     }
 }

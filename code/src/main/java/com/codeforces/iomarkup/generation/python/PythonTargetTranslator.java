@@ -1,5 +1,6 @@
-package com.codeforces.iomarkup.generation.impl.cpp;
+package com.codeforces.iomarkup.generation.python;
 
+import com.codeforces.iomarkup.generation.Translator;
 import com.codeforces.iomarkup.type.PrimitiveType;
 import com.codeforces.iomarkup.type.StringType;
 
@@ -7,20 +8,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public abstract class CppTargetTranslator implements Translator {
+abstract class PythonTargetTranslator implements Translator<String> {
     protected static final Map<String, String> predefinedTypes = Map.of(
             PrimitiveType.BOOL.getName(), "bool",
-            PrimitiveType.CHAR.getName(), "char",
+            PrimitiveType.CHAR.getName(), "str",
             PrimitiveType.INT32.getName(), "int",
-            PrimitiveType.UINT32.getName(), "unsigned int",
-            PrimitiveType.INT64.getName(), "long long",
-            PrimitiveType.UINT64.getName(), "unsigned long long",
+            PrimitiveType.UINT32.getName(), "int",
+            PrimitiveType.INT64.getName(), "int",
+            PrimitiveType.UINT64.getName(), "int",
             PrimitiveType.FLOAT32.getName(), "float",
-            PrimitiveType.FLOAT64.getName(), "double",
-            StringType.getInstance().getName(), "std::string"
+            PrimitiveType.FLOAT64.getName(), "float",
+            StringType.getInstance().getName(), "str"
     );
-
-    private int indentLevel = 0;
 
     public String translate() {
         return String.join("\n", translateToList());
@@ -30,19 +29,11 @@ public abstract class CppTargetTranslator implements Translator {
         return List.of(translate());
     }
 
-    protected void incIndentLevel() {
-        indentLevel++;
-    }
-
-    protected void decIndentLevel() {
-        indentLevel--;
-    }
-
     protected List<String> indent(List<String> lines) {
         return lines.stream().map(this::indent).collect(Collectors.toList());
     }
 
     protected String indent(String line) {
-        return "    ".repeat(indentLevel) + line;
+        return "    ".repeat(1) + line;
     }
 }

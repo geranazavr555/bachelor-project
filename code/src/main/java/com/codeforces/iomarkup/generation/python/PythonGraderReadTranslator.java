@@ -1,6 +1,7 @@
-package com.codeforces.iomarkup.generation.impl.cpp;
+package com.codeforces.iomarkup.generation.python;
 
 import com.codeforces.iomarkup.pl.PlExpression;
+import com.codeforces.iomarkup.symbol.Symbol;
 import com.codeforces.iomarkup.symbol.resolve.*;
 import com.codeforces.iomarkup.symbol.scope.Scope;
 import com.codeforces.iomarkup.type.*;
@@ -8,15 +9,26 @@ import com.codeforces.iomarkup.type.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-public class CppTestlibCheckerTranslator extends CppTargetTranslator {
+class PythonGraderReadTranslator extends PythonTargetTranslator {
+    protected static final Map<String, String> readMethods = Map.of(
+            PrimitiveType.BOOL.getName(), "next_bool",
+            PrimitiveType.INT32.getName(), "next_int",
+            PrimitiveType.UINT32.getName(), "next_int",
+            PrimitiveType.INT64.getName(), "next_int",
+            PrimitiveType.UINT64.getName(), "next_int",
+            PrimitiveType.FLOAT32.getName(), "next_float",
+            PrimitiveType.FLOAT64.getName(), "next_float",
+            StringType.getInstance().getName(), "next"
+    );
+
     private final Scope globalScope;
     private final Collection<ConstructorWithBody> constructors;
     private final List<ConstructorWithBody> delayedConstructors;
 
-    public CppTestlibCheckerTranslator(Scope globalScope, Collection<ConstructorWithBody> constructor) {
+    public PythonGraderReadTranslator(Scope globalScope, Collection<ConstructorWithBody> constructor) {
         this.globalScope = globalScope;
         this.constructors = constructor;
         this.delayedConstructors = new ArrayList<>();
@@ -24,18 +36,12 @@ public class CppTestlibCheckerTranslator extends CppTargetTranslator {
 
     public List<String> translateToList() {
         List<String> prototypes = new ArrayList<>();
-        for (ConstructorWithBody constructor : constructors) {
-            prototypes.add(generateSignature(constructor) + ";");
-        }
 
         List<String> result = new ArrayList<>();
         for (ConstructorWithBody constructor : constructors) {
-            result.add(generateSignature(constructor));
-            result.add("{");
-            incIndentLevel();
+            result.add(generateSignature(constructor) + ":");
             result.addAll(indent(translateConstructor(constructor)));
-            decIndentLevel();
-            result.add("}");
+            result.add("");
             result.add("");
         }
 
@@ -43,14 +49,9 @@ public class CppTestlibCheckerTranslator extends CppTargetTranslator {
             List<ConstructorWithBody> delayedConstructorsCopy = new ArrayList<>(delayedConstructors);
             delayedConstructors.clear();
             for (ConstructorWithBody constructor : delayedConstructorsCopy) {
-                prototypes.add(generateSignature(constructor) + ";");
-
-                result.add(generateSignature(constructor));
-                result.add("{");
-                incIndentLevel();
+                result.add(generateSignature(constructor) + ":");
                 result.addAll(indent(translateConstructor(constructor)));
-                decIndentLevel();
-                result.add("}");
+                result.add("");
                 result.add("");
             }
         }
@@ -62,7 +63,6 @@ public class CppTestlibCheckerTranslator extends CppTargetTranslator {
 
     private List<String> translateConstructorBody(String constructorName, List<ConstructorItem> constructorBody) {
         List<String> result = new ArrayList<>();
-
         for (ConstructorItem item : constructorBody) {
             if (item instanceof Variable variable) {
                 result.addAll(translateVariable(constructorName, variable));
@@ -75,37 +75,24 @@ public class CppTestlibCheckerTranslator extends CppTargetTranslator {
 
     private List<String> translateConstructor(ConstructorWithBody constructor) {
         List<String> result = new ArrayList<>();
-        result.add(getTypeName(constructor.getName()) + " " + constructor.getName() + ";");
+        result.add(constructor.getName() + " = " + getTypeName(constructor.getName()) + "()");
         result.addAll(translateConstructorBody(constructor.getName(), constructor.getBody()));
-        result.add("return " + constructor.getName() + ";");
+        result.add("return " + constructor.getName() + "");
         return result;
     }
 
     private List<String> translateSimpleType(String varLocate, Type type, List<PlExpression> args) {
         List<String> result = new ArrayList<>();
         if (TypeCharacteristic.PREDEFINED.is(type)) {
-            if (type instanceof PrimitiveType primitiveType) {
-
-                var testlibSuffix = switch (primitiveType) {
-                    case BOOL, UINT64 -> throw new RuntimeException();
-                    case CHAR -> "Char";
-                    case INT32 -> "Int";
-                    case UINT32, INT64 -> "Long";
-                    case FLOAT32, FLOAT64 -> "Double";
-                };
-
-                result.add("%s = stream.read%s();".formatted(varLocate, testlibSuffix));
-            } else if (type instanceof StringType) {
-                result.add("%s = stream.readToken();".formatted(varLocate));
-            } else throw new AssertionError();
+            String readMethod = readMethods.get(type.getName());
+            if (readMethod == null)
+                throw new AssertionError();
+            result.add(varLocate + " = _scanner." + readMethod + "()");
         } else if (TypeCharacteristic.STRUCT.is(type)) {
-            result.add("%s = read_%s(%s);".formatted(
+            result.add("%s = read_%s(%s)".formatted(
                     varLocate,
                     type.getName(),
-                    Stream.concat(
-                            Stream.of("stream"),
-                            args.stream().map(arg -> new CppPlExpressionTranslator(arg).translate())
-                    ).collect(Collectors.joining(", "))
+                    args.stream().map(arg -> new PythonPlExpressionTranslator(arg).translate()).collect(Collectors.joining(", "))
             ));
         }
         return result;
@@ -120,15 +107,11 @@ public class CppTestlibCheckerTranslator extends CppTargetTranslator {
         List<String> result = new ArrayList<>();
         if (arrayParameters.size() != 1) throw new RuntimeException(); // todo
         ArrayParameters param = arrayParameters.get(0);
-        result.add("for (%s %s = %s; %s <= %s; %s++)".formatted(
-                getTypeName(((Type) param.getIterationVarName().getDescription()).getName()),
+        result.add("for %s in range(%s, (%s) + 1):".formatted(
                 param.getIterationVarName().getName(),
-                new CppPlExpressionTranslator(param.getIterationStartExpression()).translate(),
-                param.getIterationVarName().getName(),
-                new CppPlExpressionTranslator(param.getIterationStopExpression()).translate(),
-                param.getIterationVarName().getName()
+                new PythonPlExpressionTranslator(param.getIterationStartExpression()).translate(),
+                new PythonPlExpressionTranslator(param.getIterationStopExpression()).translate()
         ));
-        result.add("{");
 
         String typeName;
         List<PlExpression> args = List.of();
@@ -142,12 +125,8 @@ public class CppTestlibCheckerTranslator extends CppTargetTranslator {
             type = parametrizedDescription.type();
         } else throw new RuntimeException();
 
-        result.add(indent(getTypeName(typeName) + " tmp;"));
-
         result.addAll(indent(translateSimpleType("tmp", type, args)));
-
-        result.add(indent("%s.%s.push_back(tmp);".formatted(constructorName, variableName)));
-        result.add("}");
+        result.add(indent("%s.%s.append(tmp)".formatted(constructorName, variableName)));
         return result;
     }
 
@@ -172,43 +151,28 @@ public class CppTestlibCheckerTranslator extends CppTargetTranslator {
 
     private List<String> translateIfAlt(String constructorName, ConstructorIfAlt ifAlt) {
         List<String> result = new ArrayList<>();
-        result.add("if (" + new CppPlExpressionTranslator(ifAlt.getConditionalExpression(), constructorName).translate() + ")");
-        result.add("{");
+        result.add("if " + new PythonPlExpressionTranslator(ifAlt.getConditionalExpression(), constructorName).translate() + ":");
 
         result.addAll(indent(translateConstructorBody(constructorName, ifAlt.getTrueItems())));
 
-        result.add("}");
         if (ifAlt.getFalseItems() != null && !ifAlt.getFalseItems().isEmpty()) {
-            result.add("else");
-            result.add("{");
+            result.add("else:");
 
             result.addAll(indent(translateConstructorBody(constructorName, ifAlt.getFalseItems())));
-
-            result.add("}");
         }
+
         return result;
     }
 
     private String getTypeName(String name) {
-        var result = predefinedTypes.get(name);
-        return result == null ? name + "_t" : result;
+        var r = predefinedTypes.get(name);
+        return r != null ? r : name.substring(0, 1).toUpperCase() + name.substring(1);
     }
 
     private String generateSignature(ConstructorWithBody constructor) {
-        return "%s read_%s(%s)".formatted(
-                getTypeName(constructor.getName()),
+        return "def read_%s(%s)".formatted(
                 constructor.getName(),
-                Stream.concat(
-                        Stream.of("InStream& stream"),
-                        constructor.getArguments().stream().map(arg -> {
-                            var type = globalScope.getNamedType(arg.getType()).type();
-                            if (TypeCharacteristic.PREDEFINED.is(type))
-                                return predefinedTypes.get(type.getName()) + " " + arg.getName();
-                            else if (TypeCharacteristic.STRUCT.is(type))
-                                return getTypeName(type.getName()) + " " + arg.getName();
-                            else throw new AssertionError();
-                        })
-                ).collect(Collectors.joining(", "))
+                constructor.getArguments().stream().map(Symbol::getName).collect(Collectors.joining(", "))
         );
     }
 }

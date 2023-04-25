@@ -1,4 +1,4 @@
-package com.codeforces.iomarkup.generation.impl.cpp;
+package com.codeforces.iomarkup.generation.cpp;
 
 import com.codeforces.iomarkup.pl.PlExpression;
 import com.codeforces.iomarkup.symbol.resolve.*;
@@ -7,31 +7,31 @@ import com.codeforces.iomarkup.type.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class CppGraderReadTranslator extends CppTargetTranslator {
+class CppGraderWriteTranslator extends CppTargetTranslator {
     private final Scope globalScope;
     private final Collection<ConstructorWithBody> constructors;
     private final List<ConstructorWithBody> delayedConstructors;
 
-    public CppGraderReadTranslator(Scope globalScope, Collection<ConstructorWithBody> constructor) {
+    public CppGraderWriteTranslator(Scope globalScope, Collection<ConstructorWithBody> constructor) { // ok
         this.globalScope = globalScope;
         this.constructors = constructor;
         this.delayedConstructors = new ArrayList<>();
     }
 
-    public List<String> translateToList() {
+    public List<String> translateToList() { // ok
         List<String> prototypes = new ArrayList<>();
         for (ConstructorWithBody constructor : constructors) {
             prototypes.add(generateSignature(constructor) + ";");
         }
+        incIndentLevel();
 
         List<String> result = new ArrayList<>();
         for (ConstructorWithBody constructor : constructors) {
             result.add(generateSignature(constructor));
             result.add("{");
-            incIndentLevel();
             result.addAll(indent(translateConstructor(constructor)));
-            decIndentLevel();
             result.add("}");
             result.add("");
         }
@@ -44,9 +44,7 @@ public class CppGraderReadTranslator extends CppTargetTranslator {
 
                 result.add(generateSignature(constructor));
                 result.add("{");
-                incIndentLevel();
                 result.addAll(indent(translateConstructor(constructor)));
-                decIndentLevel();
                 result.add("}");
                 result.add("");
             }
@@ -57,46 +55,54 @@ public class CppGraderReadTranslator extends CppTargetTranslator {
         return prototypes;
     }
 
-    private List<String> translateConstructorBody(String constructorName, List<ConstructorItem> constructorBody) {
+    private List<String> translateConstructorBody(String constructorName, List<ConstructorItem> constructorBody) { // ok
         List<String> result = new ArrayList<>();
-        for (ConstructorItem item : constructorBody) {
+
+        for (int i = 0; i < constructorBody.size(); ++i) {
+            var item = constructorBody.get(i);
             if (item instanceof Variable variable) {
                 result.addAll(translateVariable(constructorName, variable));
             } else if (item instanceof ConstructorIfAlt ifAlt) {
                 result.addAll(translateIfAlt(constructorName, ifAlt));
             }
+
+            if (item instanceof IoModifier ioModifier) {
+                assert ioModifier == IoModifier.EOLN;
+                result.add("cout << endl;");
+            } else if (i + 1 < constructorBody.size() && !(constructorBody.get(i + 1) instanceof IoModifier)) {
+                result.add("cout << ' ';");
+            }
         }
+
         return result;
     }
 
-    private List<String> translateConstructor(ConstructorWithBody constructor) {
-        List<String> result = new ArrayList<>();
-        result.add(getTypeName(constructor.getName()) + " " + constructor.getName() + ";");
-        result.addAll(translateConstructorBody(constructor.getName(), constructor.getBody()));
-        result.add("return " + constructor.getName() + ";");
-        return result;
+    private List<String> translateConstructor(ConstructorWithBody constructor) { // ok
+        return translateConstructorBody(constructor.getName(), constructor.getBody());
     }
 
-    private List<String> translateSimpleType(String varLocate, Type type, List<PlExpression> args) {
+    private List<String> translateSimpleType(String varLocate, Type type, List<PlExpression> args) { // ok
         List<String> result = new ArrayList<>();
         if (TypeCharacteristic.PREDEFINED.is(type)) {
-            result.add("cin >> %s;".formatted(varLocate));
+            result.add("cout << %s;".formatted(varLocate));
         } else if (TypeCharacteristic.STRUCT.is(type)) {
-            result.add("%s = read_%s(%s);".formatted(
-                    varLocate,
+            result.add("write_%s(%s);".formatted(
                     type.getName(),
-                    args.stream().map(arg -> new CppPlExpressionTranslator(arg).translate()).collect(Collectors.joining(", "))
+                    Stream.concat(
+                            Stream.of(varLocate),
+                            args.stream().map(arg -> new CppPlExpressionTranslator(arg).translate())
+                    ).collect(Collectors.joining(", "))
             ));
         }
         return result;
     }
 
-    private List<String> translateSimpleType(String constructorName, Variable variable, Type type, List<PlExpression> args) {
+    private List<String> translateSimpleType(String constructorName, Variable variable, Type type, List<PlExpression> args) { // ok
         return translateSimpleType(constructorName + "." + variable.getName(), type, args);
     }
 
     private List<String> translateArray(String constructorName, String variableName,
-                                        List<ArrayParameters> arrayParameters, VariableDescription component) {
+                                        List<ArrayParameters> arrayParameters, VariableDescription component) { // ok
         List<String> result = new ArrayList<>();
         if (arrayParameters.size() != 1) throw new RuntimeException(); // todo
         ArrayParameters param = arrayParameters.get(0);
@@ -122,16 +128,27 @@ public class CppGraderReadTranslator extends CppTargetTranslator {
             type = parametrizedDescription.type();
         } else throw new RuntimeException();
 
-        result.add(indent(getTypeName(typeName) + " tmp;"));
+        result.addAll(indent(translateSimpleType(
+                "%s.%s[(%s) - (%s)]".formatted(
+                        constructorName,
+                        variableName,
+                        param.getIterationVarName().getName(),
+                        new CppPlExpressionTranslator(param.getIterationStartExpression()).translate()
+                ),
+                type, args)));
 
-        result.addAll(indent(translateSimpleType("tmp", type, args)));
+        for (ArrayParameters.IoSeparator ioSeparator : param.getSeparator()) {
+            result.add(indent("cout << " + switch (ioSeparator) {
+                case SPACE -> "\" \"";
+                case EOLN -> "endl";
+            } + ";"));
+        }
 
-        result.add(indent("%s.%s.push_back(tmp);".formatted(constructorName, variableName)));
         result.add("}");
         return result;
     }
 
-    private List<String> translateVariable(String constructorName, Variable variable) {
+    private List<String> translateVariable(String constructorName, Variable variable) { // ok
         List<String> result = new ArrayList<>();
         if (variable.getDescription() instanceof Type type) {
             result.addAll(translateSimpleType(constructorName, variable, type, List.of()));
@@ -150,7 +167,7 @@ public class CppGraderReadTranslator extends CppTargetTranslator {
         return result;
     }
 
-    private List<String> translateIfAlt(String constructorName, ConstructorIfAlt ifAlt) {
+    private List<String> translateIfAlt(String constructorName, ConstructorIfAlt ifAlt) { // ok
         List<String> result = new ArrayList<>();
         result.add("if (" + new CppPlExpressionTranslator(ifAlt.getConditionalExpression(), constructorName).translate() + ")");
         result.add("{");
@@ -169,23 +186,25 @@ public class CppGraderReadTranslator extends CppTargetTranslator {
         return result;
     }
 
-    private String getTypeName(String name) {
+    private String getTypeName(String name) { // ok
         var result = predefinedTypes.get(name);
         return result == null ? name + "_t" : result;
     }
 
-    private String generateSignature(ConstructorWithBody constructor) {
-        return "%s read_%s(%s)".formatted(
-                getTypeName(constructor.getName()),
+    private String generateSignature(ConstructorWithBody constructor) { // ok
+        return "void write_%s(%s)".formatted(
                 constructor.getName(),
-                constructor.getArguments().stream().map(arg -> {
-                    var type = globalScope.getNamedType(arg.getType()).type();
-                    if (TypeCharacteristic.PREDEFINED.is(type))
-                        return predefinedTypes.get(type.getName()) + " " + arg.getName();
-                    else if (TypeCharacteristic.STRUCT.is(type))
-                        return getTypeName(type.getName()) + " " + arg.getName();
-                    else throw new AssertionError();
-                }).collect(Collectors.joining(", "))
+                Stream.concat(
+                        Stream.of(getTypeName(constructor.getName()) + " const& " + constructor.getName()),
+                        constructor.getArguments().stream().map(arg -> {
+                            var type = globalScope.getNamedType(arg.getType()).type();
+                            if (TypeCharacteristic.PREDEFINED.is(type))
+                                return predefinedTypes.get(type.getName()) + " " + arg.getName();
+                            else if (TypeCharacteristic.STRUCT.is(type))
+                                return getTypeName(type.getName()) + " const& " + arg.getName();
+                            else throw new AssertionError();
+                        })
+                ).collect(Collectors.joining(", "))
         );
     }
 }

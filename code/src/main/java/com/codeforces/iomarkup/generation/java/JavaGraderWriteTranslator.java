@@ -1,20 +1,24 @@
-package com.codeforces.iomarkup.generation.impl.cpp;
+package com.codeforces.iomarkup.generation.java;
 
 import com.codeforces.iomarkup.pl.PlExpression;
 import com.codeforces.iomarkup.symbol.resolve.*;
 import com.codeforces.iomarkup.symbol.scope.Scope;
-import com.codeforces.iomarkup.type.*;
+import com.codeforces.iomarkup.type.StructType;
+import com.codeforces.iomarkup.type.Type;
+import com.codeforces.iomarkup.type.TypeCharacteristic;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class CppGraderWriteTranslator extends CppTargetTranslator {
+class JavaGraderWriteTranslator extends JavaTargetTranslator {
     private final Scope globalScope;
     private final Collection<ConstructorWithBody> constructors;
     private final List<ConstructorWithBody> delayedConstructors;
 
-    public CppGraderWriteTranslator(Scope globalScope, Collection<ConstructorWithBody> constructor) { // ok
+    public JavaGraderWriteTranslator(Scope globalScope, Collection<ConstructorWithBody> constructor) { // ok
         this.globalScope = globalScope;
         this.constructors = constructor;
         this.delayedConstructors = new ArrayList<>();
@@ -22,15 +26,10 @@ public class CppGraderWriteTranslator extends CppTargetTranslator {
 
     public List<String> translateToList() { // ok
         List<String> prototypes = new ArrayList<>();
-        for (ConstructorWithBody constructor : constructors) {
-            prototypes.add(generateSignature(constructor) + ";");
-        }
-        incIndentLevel();
 
         List<String> result = new ArrayList<>();
         for (ConstructorWithBody constructor : constructors) {
-            result.add(generateSignature(constructor));
-            result.add("{");
+            result.add(generateSignature(constructor) + " {");
             result.addAll(indent(translateConstructor(constructor)));
             result.add("}");
             result.add("");
@@ -40,10 +39,7 @@ public class CppGraderWriteTranslator extends CppTargetTranslator {
             List<ConstructorWithBody> delayedConstructorsCopy = new ArrayList<>(delayedConstructors);
             delayedConstructors.clear();
             for (ConstructorWithBody constructor : delayedConstructorsCopy) {
-                prototypes.add(generateSignature(constructor) + ";");
-
-                result.add(generateSignature(constructor));
-                result.add("{");
+                result.add(generateSignature(constructor) + "{");
                 result.addAll(indent(translateConstructor(constructor)));
                 result.add("}");
                 result.add("");
@@ -52,7 +48,7 @@ public class CppGraderWriteTranslator extends CppTargetTranslator {
 
         prototypes.add("");
         prototypes.addAll(result);
-        return prototypes;
+        return indent(prototypes);
     }
 
     private List<String> translateConstructorBody(String constructorName, List<ConstructorItem> constructorBody) { // ok
@@ -68,9 +64,9 @@ public class CppGraderWriteTranslator extends CppTargetTranslator {
 
             if (item instanceof IoModifier ioModifier) {
                 assert ioModifier == IoModifier.EOLN;
-                result.add("cout << endl;");
+                result.add("out.println();");
             } else if (i + 1 < constructorBody.size() && !(constructorBody.get(i + 1) instanceof IoModifier)) {
-                result.add("cout << ' ';");
+                result.add("out.print(' ');");
             }
         }
 
@@ -84,13 +80,13 @@ public class CppGraderWriteTranslator extends CppTargetTranslator {
     private List<String> translateSimpleType(String varLocate, Type type, List<PlExpression> args) { // ok
         List<String> result = new ArrayList<>();
         if (TypeCharacteristic.PREDEFINED.is(type)) {
-            result.add("cout << %s;".formatted(varLocate));
+            result.add("out.print(%s);".formatted(varLocate));
         } else if (TypeCharacteristic.STRUCT.is(type)) {
-            result.add("write_%s(%s);".formatted(
-                    type.getName(),
+            result.add("write%s(%s);".formatted(
+                    getTypeName(type.getName()),
                     Stream.concat(
                             Stream.of(varLocate),
-                            args.stream().map(arg -> new CppPlExpressionTranslator(arg).translate())
+                            args.stream().map(arg -> new JavaPlExpressionTranslator(arg).translate())
                     ).collect(Collectors.joining(", "))
             ));
         }
@@ -106,15 +102,14 @@ public class CppGraderWriteTranslator extends CppTargetTranslator {
         List<String> result = new ArrayList<>();
         if (arrayParameters.size() != 1) throw new RuntimeException(); // todo
         ArrayParameters param = arrayParameters.get(0);
-        result.add("for (%s %s = %s; %s <= %s; %s++)".formatted(
+        result.add("for (%s %s = %s; %s <= %s; %s++) {".formatted(
                 getTypeName(((Type) param.getIterationVarName().getDescription()).getName()),
                 param.getIterationVarName().getName(),
-                new CppPlExpressionTranslator(param.getIterationStartExpression()).translate(),
+                new JavaPlExpressionTranslator(param.getIterationStartExpression()).translate(),
                 param.getIterationVarName().getName(),
-                new CppPlExpressionTranslator(param.getIterationStopExpression()).translate(),
+                new JavaPlExpressionTranslator(param.getIterationStopExpression()).translate(),
                 param.getIterationVarName().getName()
         ));
-        result.add("{");
 
         String typeName;
         List<PlExpression> args = List.of();
@@ -129,18 +124,18 @@ public class CppGraderWriteTranslator extends CppTargetTranslator {
         } else throw new RuntimeException();
 
         result.addAll(indent(translateSimpleType(
-                "%s.%s[(%s) - (%s)]".formatted(
+                "%s.%s.get((%s) - (%s))".formatted(
                         constructorName,
                         variableName,
                         param.getIterationVarName().getName(),
-                        new CppPlExpressionTranslator(param.getIterationStartExpression()).translate()
+                        new JavaPlExpressionTranslator(param.getIterationStartExpression()).translate()
                 ),
                 type, args)));
 
         for (ArrayParameters.IoSeparator ioSeparator : param.getSeparator()) {
-            result.add(indent("cout << " + switch (ioSeparator) {
-                case SPACE -> "\" \"";
-                case EOLN -> "endl";
+            result.add(indent("out.print" + switch (ioSeparator) {
+                case SPACE -> "(' ')";
+                case EOLN -> "ln()";
             } + ";"));
         }
 
@@ -169,39 +164,34 @@ public class CppGraderWriteTranslator extends CppTargetTranslator {
 
     private List<String> translateIfAlt(String constructorName, ConstructorIfAlt ifAlt) { // ok
         List<String> result = new ArrayList<>();
-        result.add("if (" + new CppPlExpressionTranslator(ifAlt.getConditionalExpression(), constructorName).translate() + ")");
-        result.add("{");
+        result.add("if (" + new JavaPlExpressionTranslator(ifAlt.getConditionalExpression(), constructorName).translate() + ") {");
 
         result.addAll(indent(translateConstructorBody(constructorName, ifAlt.getTrueItems())));
 
-        result.add("}");
         if (ifAlt.getFalseItems() != null && !ifAlt.getFalseItems().isEmpty()) {
-            result.add("else");
-            result.add("{");
-
+            result.add("} else {");
             result.addAll(indent(translateConstructorBody(constructorName, ifAlt.getFalseItems())));
-
-            result.add("}");
         }
+        result.add("}");
         return result;
     }
 
     private String getTypeName(String name) { // ok
-        var result = predefinedTypes.get(name);
-        return result == null ? name + "_t" : result;
+        var r = predefinedTypes.get(name);
+        return r != null ? r : name.substring(0, 1).toUpperCase() + name.substring(1);
     }
 
     private String generateSignature(ConstructorWithBody constructor) { // ok
-        return "void write_%s(%s)".formatted(
-                constructor.getName(),
+        return "private void write%s(%s)".formatted(
+                getTypeName(constructor.getName()),
                 Stream.concat(
-                        Stream.of(getTypeName(constructor.getName()) + " const& " + constructor.getName()),
+                        Stream.of(getTypeName(constructor.getName()) + " " + constructor.getName()),
                         constructor.getArguments().stream().map(arg -> {
                             var type = globalScope.getNamedType(arg.getType()).type();
                             if (TypeCharacteristic.PREDEFINED.is(type))
                                 return predefinedTypes.get(type.getName()) + " " + arg.getName();
                             else if (TypeCharacteristic.STRUCT.is(type))
-                                return getTypeName(type.getName()) + " const& " + arg.getName();
+                                return getTypeName(type.getName()) + " " + arg.getName();
                             else throw new AssertionError();
                         })
                 ).collect(Collectors.joining(", "))

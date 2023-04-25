@@ -1,4 +1,4 @@
-package com.codeforces.iomarkup.generation.impl.cpp;
+package com.codeforces.iomarkup.generation.python;
 
 import com.codeforces.iomarkup.pl.*;
 import com.codeforces.iomarkup.type.PrimitiveType;
@@ -7,15 +7,15 @@ import com.codeforces.iomarkup.type.Type;
 
 import java.util.stream.Collectors;
 
-public class CppPlExpressionTranslator extends CppTargetTranslator {
+class PythonPlExpressionTranslator extends PythonTargetTranslator {
     private final String overridePath;
     private final PlExpression expression;
 
-    public CppPlExpressionTranslator(PlExpression expression) {
+    public PythonPlExpressionTranslator(PlExpression expression) {
         this(expression, null);
     }
 
-    public CppPlExpressionTranslator(PlExpression expression, String overridePath) {
+    public PythonPlExpressionTranslator(PlExpression expression, String overridePath) {
         this.expression = expression;
         this.overridePath = overridePath;
     }
@@ -76,7 +76,7 @@ public class CppPlExpressionTranslator extends CppTargetTranslator {
         if (!"len".equals(plFunctionCall.getFunction().getName()))
             throw new AssertionError();
 
-        return translate(plFunctionCall.getArgExpressions().get(0)) + ".size()";
+        return translate(plFunctionCall.getArgExpressions().get(0)) + ".size()"; // todo .length()
     }
 
     private String visitIfOperator(PlIfOperator plIfOperator) {
@@ -87,8 +87,8 @@ public class CppPlExpressionTranslator extends CppTargetTranslator {
         );
     }
 
-    private String visitSubscript(PlSubscript plSubscript) {
-        return translate(plSubscript.getArrayExpression()) + "[" + translate(plSubscript.getIndexExpression()) + "]";
+    private String visitSubscript(PlSubscript plSubscript) { // todo .charAt()
+        return translate(plSubscript.getArrayExpression()) + ".get(" + translate(plSubscript.getIndexExpression()) + ")";
     }
 
     private String visitUnaryOperator(PlUnaryOperator plUnaryOperator) {
@@ -104,11 +104,11 @@ public class CppPlExpressionTranslator extends CppTargetTranslator {
         T val = value.getValue();
         if (type instanceof PrimitiveType primitiveType) {
             return switch (primitiveType) {
-                case BOOL, FLOAT32, FLOAT64, INT32 -> val.toString();
+                case BOOL, FLOAT32, INT32 -> val.toString();
                 case CHAR -> "'" + val + "'";
-                case UINT32 -> val + "u";
-                case INT64 -> val + "ll";
-                case UINT64 -> val + "ull";
+                case UINT32, INT64 -> val + "L";
+                case UINT64 -> "new java.math.BigInteger(\"%s\")".formatted(val);
+                case FLOAT64 -> val.toString() + "F";
             };
         } else if (type instanceof StringType) {
             return "\"" + val + "\"";
@@ -121,9 +121,9 @@ public class CppPlExpressionTranslator extends CppTargetTranslator {
         if (overridePath == null) {
             var path = var.getPath();
             for (int i = 0; i < path.size(); i++) {
-                sb.append(path.get(i).iteration() ? "[" : "")
+                sb.append(path.get(i).iteration() ? ".get(" : "")
                         .append(path.get(i).name())
-                        .append(path.get(i).iteration() ? "]" : "");
+                        .append(path.get(i).iteration() ? ")" : "");
                 if (i == path.size() - 1 || i < path.size() - 1 && !path.get(i + 1).iteration())
                     sb.append(".");
             }

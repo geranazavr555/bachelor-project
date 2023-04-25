@@ -52,7 +52,6 @@ RPAR: ')';
 SEP: 'sep';
 EOLN_MODIFIER: 'eoln';
 IF: 'if';
-ITER: 'iter';
 ARRAY: 'array';
 OF: 'of';
 ELSE: 'else';

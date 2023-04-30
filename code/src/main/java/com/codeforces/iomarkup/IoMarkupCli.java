@@ -1,5 +1,6 @@
 package com.codeforces.iomarkup;
 
+import com.codeforces.iomarkup.daemon.IoMarkupDaemon;
 import com.codeforces.iomarkup.exec.TargetComponent;
 import com.codeforces.iomarkup.exec.TargetLanguage;
 import com.codeforces.iomarkup.generation.TranslatedFile;
@@ -27,6 +28,19 @@ public class IoMarkupCli {
 
         if (cmd.hasOption("h")) {
             printHelpAndExit(0);
+            return;
+        }
+
+        if (cmd.hasOption("d")) {
+            handleDaemonMode(cmd);
+        } else {
+            handleCliMode(cmd);
+        }
+    }
+
+    private static void handleCliMode(CommandLine cmd) {
+        if (!cmd.hasOption("t") || !cmd.hasOption("c")) {
+            printHelpAndExit(5);
             return;
         }
 
@@ -74,6 +88,30 @@ public class IoMarkupCli {
         }
     }
 
+    private static void handleDaemonMode(CommandLine cmd) {
+        if (!cmd.hasOption("p")) {
+            printHelpAndExit(6);
+            return;
+        }
+
+        int port;
+        try {
+            port = Integer.parseInt(cmd.getOptionValue("p"));
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
+            printHelpAndExit(7);
+            return;
+        }
+
+        if (port < 1 || port > 65535) {
+            printHelpAndExit(8);
+            return;
+        }
+
+        var daemon = new IoMarkupDaemon(port);
+        daemon.run();
+    }
+
     private static void printHelpAndExit(int exitCode) {
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("ant", options);
@@ -96,7 +134,7 @@ public class IoMarkupCli {
         options.addOption(
                 Option.builder("t")
                         .longOpt("target")
-                        .required(true)
+                        .required(false)
                         .desc("Target language. Can be 'cpp', 'java' or 'python'")
                         .type(String.class)
                         .hasArg(true)
@@ -108,7 +146,7 @@ public class IoMarkupCli {
         options.addOption(
                 Option.builder("c")
                         .longOpt("component")
-                        .required(true)
+                        .required(false)
                         .desc("Target component. Can be 'checker', 'validator', 'solution' or 'grader'")
                         .type(String.class)
                         .hasArg(true)
@@ -134,6 +172,25 @@ public class IoMarkupCli {
                         .longOpt("help")
                         .required(false)
                         .desc("Prints help. All other arguments will be ignored.")
+                        .build()
+        );
+
+        options.addOption(
+                Option.builder("d")
+                        .longOpt("daemon")
+                        .required(false)
+                        .desc("Run as daemon")
+                        .build()
+        );
+
+        options.addOption(
+                Option.builder("p")
+                        .longOpt("port")
+                        .required(false)
+                        .desc("Port to listen for daemon mode")
+                        .hasArg(true)
+                        .numberOfArgs(1)
+                        .type(int.class)
                         .build()
         );
     }

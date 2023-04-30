@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="INFO" strict="true"
+               name="XMLConfigTest" packages="org.apache.logging.log4j.test">
+    <Filter type="ThresholdFilter" level="info"/>
+
+    <Appenders>
+        <Console name="console">
+            <PatternLayout>
+                <pattern>%-5p [%d{yyyy-MM-dd HH:mm:ss}] %c{1}: %m (%F:%L, %t)%n</pattern>
+            </PatternLayout>
+            <ThresholdFilter level="${log4j2.consoleLevel}"/>
+        </Console>
+
+<!--        <RollingFile name="info" fileName="${home.path}/log4j2-contester-info.log"
+                     filePattern="${home.path}/log4j2-contester-info.log.%02i" immediateFlush="${log4j2.immediateFlush}">
+            <PatternLayout>
+                <pattern>%-5p [%d{yyyy-MM-dd HH:mm:ss}] %c{1}: %m (%F:%L, %t)%n</pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="32MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="99"/>
+            <ThresholdFilter level="info"/>
+        </RollingFile>
+
+        <RollingFile name="warn" fileName="${home.path}/log4j2-contester-warn.log"
+                     filePattern="${home.path}/log4j2-contester-warn.log.%02i" immediateFlush="${log4j2.immediateFlush}">
+            <PatternLayout>
+                <pattern>%-5p [%d{yyyy-MM-dd HH:mm:ss}] %c{1}: %m (%F:%L, %t)%n</pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="32MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="99"/>
+            <ThresholdFilter level="warn"/>
+        </RollingFile>
+
+        <RollingFile name="err" fileName="${home.path}/log4j2-contester-err.log"
+                     filePattern="${home.path}/log4j2-contester-err.log.%02i" immediateFlush="${log4j2.immediateFlush}">
+            <PatternLayout>
+                <pattern>%-5p [%d{yyyy-MM-dd HH:mm:ss}] %c{1}: %m (%F:%L, %t)%n</pattern>
+            </PatternLayout>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="32MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="99"/>
+            <ThresholdFilter level="error"/>
+        </RollingFile>-->
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="console"/>
+            <!--<AppenderRef ref="info"/>
+            <AppenderRef ref="warn"/>
+            <AppenderRef ref="err"/>-->
+        </Root>
+    </Loggers>
+</Configuration>

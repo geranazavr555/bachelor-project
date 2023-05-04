@@ -1,0 +1,22 @@
+# https://polygon.codeforces.com/p54jpXt/parfenov_2001/a-characteristic
+
+testcase {
+    n: int32 | 2 <= n && n <= 100;
+    k: int32 | 0 <= k && k <= (n - 1) * n / 2;
+}
+
+input {
+    t: int32 | 1 <= t && t <= 100;
+    eoln;
+    testcases: testcase[i=1..t, sep='\n'];
+}
+
+output {
+    testcaseOutputs: array[i=1..input.t, sep='\n'] of {
+        verdict: string | verdict == "YES" || verdict == "NO";
+        if (verdict == "YES") {
+            eoln;
+            a: int32[j=1..input.testcases[i].n, sep=' '] | a[j] == 1 || a[j] == -1;
+        }
+    };
+}

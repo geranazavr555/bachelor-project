@@ -1,0 +1,18 @@
+# https://polygon.codeforces.com/p3eBpQz/parfenov_2001/sort-with-step
+
+testcase {
+    n: int32 | 2 <= n && n <= 2 * 10 ** 5;
+    k: int32 | 1 <= k && k <= n - 1;
+    eoln;
+    p: int32[i=1..n, sep=' '] | 1 <= p[i] && p[i] <= n;
+}
+
+input {
+    t: int32 | 1 <= t && t <= 10 ** 4;
+    eoln;
+    testcases: testcase[i=1..t, sep='\n'];
+}
+
+output {
+    ans: int32[i=1..input.t, sep='\n'] | ans[i] >= -1 && ans[i] <= 1;
+}

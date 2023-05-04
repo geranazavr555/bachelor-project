@@ -1,0 +1,17 @@
+# https://polygon.codeforces.com/p59zhMS/parfenov_2001/strongly-composite-easy
+
+testcase {
+    n: int32;
+    eoln;
+    a: int32[i=1..n, sep=' '] | 2 <= a[i] && a[i] <= 10 ** 7;
+}
+
+input {
+    t: int32 | 1 <= t && t <= 1000;
+    eoln;
+    testcases: testcase[i=1..t, sep='\n'];
+}
+
+output {
+    k: int32[i=1..input.t, sep='\n'];
+}

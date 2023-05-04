@@ -64,6 +64,8 @@ public class PythonSolutionTranslator implements FilesTranslator {
             # Structure declarations
             %s
             
+            input = None
+            
             # Input functions
             %s
             
@@ -72,9 +74,11 @@ public class PythonSolutionTranslator implements FilesTranslator {
             
             def solve(input):
                 # Write your code here. This function should return an Output object.
+                pass
             
             if __name__ == '__main__':
-                write_output(solve(read_input()))
+                input = read_input()
+                write_output(solve(input))
             
             """;
 

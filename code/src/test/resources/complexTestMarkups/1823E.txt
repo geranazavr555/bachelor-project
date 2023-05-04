@@ -1,0 +1,18 @@
+# https://polygon.codeforces.com/p482A2I/parfenov_2001/remove-the-graph
+
+edge(n: int32) {
+    u: int32 | 1 <= u && u <= n;
+    v: int32 | 1 <= v && v <= n && u != v;
+}
+
+input {
+    n: int32 | 3 <= n && n <= 2 * 10 ** 5;
+    l: int32 | 1 <= l && l <= n;
+    r: int32 | l < r && r <= n;
+    eoln;
+    edges: edge(n)[i=1..n, sep='\n'];
+}
+
+output {
+    s: string;
+}

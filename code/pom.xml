@@ -96,6 +96,40 @@
             <version>3.1.0</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.codeforces</groupId>
+            <artifactId>invoker</artifactId>
+            <version>2.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.codeforces</groupId>
+            <artifactId>commons-ext</artifactId>
+            <version>3.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.codeforces</groupId>
+            <artifactId>commons</artifactId>
+            <version>3.0-SNAPSHOT</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>
@@ -119,8 +153,8 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <executable>src/test/resources/realMarkups/mklist.cmd</executable>
-                    <workingDirectory>src/test/resources/realMarkups</workingDirectory>
+                    <executable>src/test/resources/complexTestMarkups/mklist.cmd</executable>
+                    <workingDirectory>src/test/resources/complexTestMarkups</workingDirectory>
                 </configuration>
                 <executions>
                     <execution>
@@ -173,6 +207,31 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <filters>
+                        <filter>profile.properties</filter>
+                    </filters>
+                    <nonFilteredFileExtensions>
+                        <nonFilteredFileExtension>txt</nonFilteredFileExtension>
+                        <nonFilteredFileExtension>cmd</nonFilteredFileExtension>
+                    </nonFilteredFileExtensions>
+                </configuration>
+            </plugin>
         </plugins>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
     </build>
 </project>

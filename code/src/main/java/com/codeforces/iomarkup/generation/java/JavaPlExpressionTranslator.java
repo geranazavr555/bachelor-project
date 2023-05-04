@@ -118,19 +118,32 @@ class JavaPlExpressionTranslator extends JavaTargetTranslator {
     private String visitVarBinding(PlVarBinding plVarBinding) {
         var var = plVarBinding.getVariable();
         var sb = new StringBuilder();
-        if (overridePath == null) {
-            var path = var.getPath();
-            for (int i = 0; i < path.size(); i++) {
-                sb.append(path.get(i).iteration() ? ".get(" : "")
-                        .append(path.get(i).name())
-                        .append(path.get(i).iteration() ? ")" : "");
-                if (i == path.size() - 1 || i < path.size() - 1 && !path.get(i + 1).iteration())
-                    sb.append(".");
+
+        if (plVarBinding.getFieldLocate() == null || plVarBinding.getFieldLocate().isEmpty()) {
+            if (overridePath == null) {
+                var path = var.getPath();
+                for (int i = 0; i < path.size(); i++) {
+                    sb.append(path.get(i).iteration() ? ".get(" : "")
+                            .append(path.get(i).name())
+                            .append(path.get(i).iteration() ? ")" : "");
+                    if (i == path.size() - 1 || i < path.size() - 1 && !path.get(i + 1).iteration())
+                        sb.append(".");
+                }
+            } else if (!overridePath.isEmpty()) {
+                sb.append(overridePath).append('.');
             }
-        } else if (!overridePath.isEmpty()) {
-            sb.append(overridePath).append('.');
+            sb.append(var.getName());
+        } else {
+            sb.append(var.getName());
+            for (int i = 0; i < plVarBinding.getFieldLocate().size(); ++i) {
+                var cur = plVarBinding.getFieldLocate().get(i);
+                if (cur.iterExpr() != null) {
+                    sb.append(".get(").append(translate(cur.iterExpr())).append(")");
+                } else {
+                    sb.append(".").append(cur.name());
+                }
+            }
         }
-        sb.append(var.getName());
         return sb.toString();
     }
 }

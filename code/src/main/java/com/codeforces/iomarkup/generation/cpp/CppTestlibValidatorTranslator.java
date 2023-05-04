@@ -1,24 +1,27 @@
 package com.codeforces.iomarkup.generation.cpp;
 
 import com.codeforces.iomarkup.pl.PlExpression;
+import com.codeforces.iomarkup.pl.PlVarBinding;
+import com.codeforces.iomarkup.symbol.ConstructorArgument;
+import com.codeforces.iomarkup.symbol.Symbol;
 import com.codeforces.iomarkup.symbol.resolve.*;
 import com.codeforces.iomarkup.symbol.scope.Scope;
 import com.codeforces.iomarkup.type.*;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 class CppTestlibValidatorTranslator extends CppTargetTranslator {
     private final Scope globalScope;
     private final Collection<ConstructorWithBody> constructors;
     private final List<ConstructorWithBody> delayedConstructors;
+    private final Set<String> curLocals;
 
     public CppTestlibValidatorTranslator(Scope globalScope, Collection<ConstructorWithBody> constructor) {
         this.globalScope = globalScope;
         this.constructors = constructor;
         this.delayedConstructors = new ArrayList<>();
+        this.curLocals = new HashSet<>();
     }
 
     public List<String> translateToList() {
@@ -30,12 +33,14 @@ class CppTestlibValidatorTranslator extends CppTargetTranslator {
         List<String> result = new ArrayList<>();
         for (ConstructorWithBody constructor : constructors) {
             result.add(generateSignature(constructor));
+            constructor.getArguments().stream().map(Symbol::getName).forEach(curLocals::add);
             result.add("{");
             incIndentLevel();
             result.addAll(indent(translateConstructor(constructor)));
             decIndentLevel();
             result.add("}");
             result.add("");
+            curLocals.clear();
         }
 
         while (!delayedConstructors.isEmpty()) {
@@ -45,12 +50,14 @@ class CppTestlibValidatorTranslator extends CppTargetTranslator {
                 prototypes.add(generateSignature(constructor) + ";");
 
                 result.add(generateSignature(constructor));
+                constructor.getArguments().stream().map(Symbol::getName).forEach(curLocals::add);
                 result.add("{");
                 incIndentLevel();
                 result.addAll(indent(translateConstructor(constructor)));
                 decIndentLevel();
                 result.add("}");
                 result.add("");
+                curLocals.clear();
             }
         }
 
@@ -62,20 +69,29 @@ class CppTestlibValidatorTranslator extends CppTargetTranslator {
     private List<String> translateConstructorBody(String constructorName, List<ConstructorItem> constructorBody) {
         List<String> result = new ArrayList<>();
 
+        boolean delayedSpace = false;
         for (int i = 0; i < constructorBody.size(); ++i) {
             var item = constructorBody.get(i);
             if (item instanceof Variable variable) {
                 result.addAll(translateVariable(constructorName, variable));
             } else if (item instanceof ConstructorIfAlt ifAlt) {
-                result.addAll(translateIfAlt(constructorName, ifAlt));
+                result.addAll(translateIfAlt(constructorName, ifAlt, delayedSpace));
+                delayedSpace = false;
             }
 
             if (item instanceof IoModifier ioModifier) {
                 result.add("inf.readEoln();");
             } else if (i + 1 < constructorBody.size()) {
                 var nextItem = constructorBody.get(i + 1);
-                if (!(nextItem instanceof IoModifier))
+                if (!(nextItem instanceof IoModifier)) {
+                    if (nextItem instanceof ConstructorIfAlt constructorIfAlt) {
+                        if (constructorIfAlt.getFalseItems() == null || constructorIfAlt.getFalseItems().isEmpty()) {
+                            delayedSpace = true;
+                            continue;
+                        }
+                    }
                     result.add("inf.readSpace();");
+                }
             }
         }
         return result;
@@ -117,10 +133,22 @@ class CppTestlibValidatorTranslator extends CppTargetTranslator {
     }
 
     private List<String> translateSimpleType(String constructorName, Variable variable, Type type, List<PlExpression> args) {
-        return translateSimpleType(constructorName + "." + variable.getName(), type, args);
+        var result = translateSimpleType(constructorName + "." + variable.getName(), type, args);
+        var constraint = variable.getConstraint();
+        if (constraint != null) {
+            Map<String, String> locals = curLocals.stream().collect(Collectors.toMap(x -> x, x -> x, (a, b) -> b));
+
+            var s = new CppPlExpressionTranslator(constraint, constructorName, locals).translate();
+
+            result.add("ensuref(%s, \"%s\");".formatted(
+                    s,
+                    escape(s)
+            ));
+        }
+        return result;
     }
 
-    private List<String> translateArray(String constructorName, String variableName,
+    private List<String> translateArray(String constructorName, Variable variable,
                                         List<ArrayParameters> arrayParameters, VariableDescription component) {
         List<String> result = new ArrayList<>();
         if (arrayParameters.size() != 1) throw new RuntimeException(); // todo
@@ -170,7 +198,24 @@ class CppTestlibValidatorTranslator extends CppTargetTranslator {
 
         result.addAll(indent(translateSimpleType("tmp", type, args)));
 
-        result.add(indent("%s.%s.push_back(tmp);".formatted(constructorName, variableName)));
+        result.add(indent("%s.%s.push_back(tmp);".formatted(constructorName, variable.getName())));
+
+        var constraint = variable.getConstraint();
+        if (constraint != null) {
+            Map<String, String> locals = new HashMap<>();
+            locals.put(param.getIterationVarName().getName(), "((%s) - (%s))".formatted(
+                    param.getIterationVarName().getName(),
+                    new CppPlExpressionTranslator(param.getIterationStartExpression()).translate()
+            ));
+            curLocals.forEach(x -> locals.put(x, x));
+
+            var s = new CppPlExpressionTranslator(constraint, constructorName, locals).translate();
+            result.add(indent("ensuref(%s, \"%s\");".formatted(
+                    s,
+                    escape(s)
+            )));
+        }
+
         result.add("}");
         return result;
     }
@@ -183,21 +228,32 @@ class CppTestlibValidatorTranslator extends CppTargetTranslator {
             result.addAll(translateSimpleType(constructorName, variable, parametrizedDescription.type(),
                     parametrizedDescription.arguments()));
         } else if (variable.getDescription() instanceof NamedTypeArrayDescription arrayDescription) {
-            result.addAll(translateArray(constructorName, variable.getName(), arrayDescription.getArrayParameters(),
+            result.addAll(translateArray(constructorName, variable, arrayDescription.getArrayParameters(),
                     arrayDescription.getComponent()));
         } else if (variable.getDescription() instanceof UnnamedStructArrayDescription arrayDescription) {
-            result.addAll(translateArray(constructorName, variable.getName(), arrayDescription.getArrayParameters(),
-                    new StructType(variable.getName(), false)));
-            delayedConstructors.add(new ConstructorWithBody(variable.getName(), List.of(), arrayDescription.getComponent()));
+            var iterVar = arrayDescription.getArrayParameters().get(0).getIterationVarName();
+            result.addAll(translateArray(constructorName, variable, arrayDescription.getArrayParameters(),
+                    new ParametrizedDescription(new StructType(variable.getName(), false), List.of(
+                            new PlVarBinding(iterVar, List.of())
+                    ))));
+            delayedConstructors.add(new ConstructorWithBody(variable.getName(), List.of(
+                    new ConstructorArgument(
+                            iterVar.getName(),
+                            ((Type) iterVar.getDescription()).getName()
+                    )
+            ), arrayDescription.getComponent()));
         }
 
         return result;
     }
 
-    private List<String> translateIfAlt(String constructorName, ConstructorIfAlt ifAlt) {
+    private List<String> translateIfAlt(String constructorName, ConstructorIfAlt ifAlt, boolean delayedSpace) {
         List<String> result = new ArrayList<>();
         result.add("if (" + new CppPlExpressionTranslator(ifAlt.getConditionalExpression(), constructorName).translate() + ")");
         result.add("{");
+
+        if (delayedSpace)
+            result.add(indent("inf.readSpace();"));
 
         result.addAll(indent(translateConstructorBody(constructorName, ifAlt.getTrueItems())));
 
@@ -231,5 +287,13 @@ class CppTestlibValidatorTranslator extends CppTargetTranslator {
                     else throw new AssertionError();
                 }).collect(Collectors.joining(", "))
         );
+    }
+
+    private static String escape(String s) {
+        return s.replace("\\", "\\\\")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\"", "\\\"")
+                .replace("\t", "\\t");
     }
 }

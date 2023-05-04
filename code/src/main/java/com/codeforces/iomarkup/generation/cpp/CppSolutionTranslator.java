@@ -18,7 +18,9 @@ public class CppSolutionTranslator implements FilesTranslator {
 
             // Structure declarations
             %s
-                        
+            
+            input_t input;
+            
             // Functions for input
             %s
                         
@@ -32,7 +34,8 @@ public class CppSolutionTranslator implements FilesTranslator {
 
             int main(int argc, char *argv[])
             {
-                write_output(solve(read_input()));
+                input = read_input();
+                write_output(solve(input));
                 return 0;
             }
             """;

@@ -8,9 +8,7 @@ import com.codeforces.iomarkup.generation.TranslatedFile;
 import com.codeforces.iomarkup.symbol.FindGlobalSymbolsVisitor;
 import com.codeforces.iomarkup.symbol.resolve.ResolveSymbolsVisitor;
 import com.codeforces.iomarkup.symbol.scope.Scope;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.*;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -39,6 +37,8 @@ public class IoMarkup {
     private IoMarkup(CharStream antlrCharStream) {
         var lexer = new IoMarkupLexer(antlrCharStream);
         var parser = new IoMarkupParser(new CommonTokenStream(lexer));
+        parser.setErrorHandler(new BailErrorStrategy());
+
         var parseTreeRoot = parser.ioMarkup();
         globalScope = new FindGlobalSymbolsVisitor().visitIoMarkup(parseTreeRoot);
         globalScope = new ResolveSymbolsVisitor(globalScope).visitIoMarkup(parseTreeRoot);

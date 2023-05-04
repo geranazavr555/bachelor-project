@@ -13,20 +13,39 @@ public class CppValidatorTranslator implements FilesTranslator {
             #include <vector>
             #include "testlib.h"
 
+            namespace iomarkup
+            {
+                int pow(int a, int b)
+                {
+                    if (b == 0) return 1;
+                    if (b %% 2 == 1) return a * pow(a, b - 1);
+                    return pow(a * a, b / 2);
+                }
+                
+                long long pow(long long a, long long b)
+                {
+                    if (b == 0) return 1ll;
+                    if (b %% 2 == 1) return a * pow(a, b - 1ll);
+                    return pow(a * a, b / 2ll);
+                }
+            }
+
             using std::cin;
             using std::cout;
             using std::vector;
 
             // Structure declarations
             %s
-                        
+            
+            input_t input;
+
             // Functions for input
             %s
                         
             int main(int argc, char *argv[])
             {
                 registerValidation(argc, argv);
-                input_t input = read_input();
+                input = read_input();
                 inf.readEoln();
                 inf.readEof();
                 

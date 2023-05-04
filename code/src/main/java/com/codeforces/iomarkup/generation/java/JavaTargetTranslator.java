@@ -10,14 +10,14 @@ import java.util.stream.Collectors;
 
 public abstract class JavaTargetTranslator implements Translator<String> {
     protected static final Map<String, String> predefinedTypes = Map.of(
-            PrimitiveType.BOOL.getName(), "boolean",
-            PrimitiveType.CHAR.getName(), "char",
-            PrimitiveType.INT32.getName(), "int",
-            PrimitiveType.UINT32.getName(), "long",
-            PrimitiveType.INT64.getName(), "long",
+            PrimitiveType.BOOL.getName(), "Boolean",
+            PrimitiveType.CHAR.getName(), "Character",
+            PrimitiveType.INT32.getName(), "Integer",
+            PrimitiveType.UINT32.getName(), "Long",
+            PrimitiveType.INT64.getName(), "Long",
             PrimitiveType.UINT64.getName(), "java.math.BigInteger",
-            PrimitiveType.FLOAT32.getName(), "float",
-            PrimitiveType.FLOAT64.getName(), "double",
+            PrimitiveType.FLOAT32.getName(), "Float",
+            PrimitiveType.FLOAT64.getName(), "Double",
             StringType.getInstance().getName(), "java.lang.String"
     );
 

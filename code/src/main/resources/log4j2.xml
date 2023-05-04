@@ -8,7 +8,7 @@
             <PatternLayout>
                 <pattern>%-5p [%d{yyyy-MM-dd HH:mm:ss}] %c{1}: %m (%F:%L, %t)%n</pattern>
             </PatternLayout>
-            <ThresholdFilter level="${log4j2.consoleLevel}"/>
+            <ThresholdFilter level="INFO"/>
         </Console>
 
 <!--        <RollingFile name="info" fileName="${home.path}/log4j2-contester-info.log"

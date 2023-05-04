@@ -20,10 +20,10 @@ public class CppCheckerTranslator implements FilesTranslator {
             // Structure declarations
             %s
             
+            input_t input;
+            
             // Functions for input
             %s
-            
-            input_t input;
 
             typedef output_t AnsType;
 

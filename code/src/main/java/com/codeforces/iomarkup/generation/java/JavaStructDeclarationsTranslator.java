@@ -101,8 +101,9 @@ class JavaStructDeclarationsTranslator extends JavaTargetTranslator {
     }
 
     private String translateToVariableDeclaration(Variable variable) {
+        boolean array = variable.getDescription() instanceof ArrayDescription<?>;
         return "private " + getJavaTypeStringFromDescription(variable.getDescription(), variable.getName())
-                + " " +  variable.getName() + " = new java.util.ArrayList<>();";
+                + " " +  variable.getName() + (array ? " = new java.util.ArrayList<>()" : "") + ";";
     }
 
     private List<String> translateToVariableDeclarations(ConstructorIfAlt ifAlt) {

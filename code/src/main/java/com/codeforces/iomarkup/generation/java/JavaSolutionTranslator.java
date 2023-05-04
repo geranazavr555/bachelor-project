@@ -15,8 +15,9 @@ public class JavaSolutionTranslator implements FilesTranslator {
 
                 private final java.util.Scanner in;
                 private final java.io.PrintStream out;
+                private Input input;
 
-                public Grader(java.util.Scanner in, java.io.PrintStream out) {
+                public Solution(java.util.Scanner in, java.io.PrintStream out) {
                     this.in = in;
                     this.out = out;
                 }
@@ -34,7 +35,8 @@ public class JavaSolutionTranslator implements FilesTranslator {
                 public static void main(java.lang.String[] args) {
                     try (java.util.Scanner inputScanner = new java.util.Scanner(java.lang.System.in)) {
                         Solution solution = new Solution(inputScanner, java.lang.System.out);
-                        solution.writeOutput(solution.solve(solution.readInput()))
+                        solution.input = solution.readInput();
+                        solution.writeOutput(solution.solve(solution.input));
                     }
                 }
             }

@@ -1,0 +1,16 @@
+# https://polygon.codeforces.com/p8HP6CE/Little09/magician-and-pigs-hard?revision=37
+
+input {
+    n: int32 | 1 <= n && n <= 8 * 10 ** 5;
+    eoln;
+    ops: array[i=1..n, sep='\n'] of {
+        op: int32 | 1 <= op && op <= 3;
+        if (op < 3) {
+            x: int32 | 1 <= x && x <= 10 ** 9;
+        }
+    };
+}
+
+output {
+    alive: uint32 | alive < 998'244'353;
+}

@@ -11,6 +11,7 @@ import com.codeforces.iomarkup.type.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
@@ -47,7 +48,12 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
     public Scope visitIoMarkup(IoMarkupParser.IoMarkupContext ctx) {
         scopeStack.clear();
         scopeStack.add(globalScope);
-        ctx.namedStruct().forEach(this::visitNamedStruct);
+
+        ctx.namedStruct().stream().filter(context -> "input".equals(context.NAME().getText())).forEach(this::visitNamedStruct);
+        scope().pushVariable(new Variable("input", scope().getType("input"), Collections.emptyList()));
+
+        ctx.namedStruct().stream().filter(context -> !"input".equals(context.NAME().getText())).forEach(this::visitNamedStruct);
+
         return globalScope;
     }
 
@@ -60,6 +66,7 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
         currentSymbol = constructor;
         pushScope();
         pushVarPathItem(new VarPathItem(currentSymbol.getName(), false));
+
         for (ConstructorArgument argument : constructor.getArguments()) {
             NamedType type = scope().getNamedType(argument.getType());
             if (type == null)
@@ -135,8 +142,8 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
 
         var variableDescription = visitVariableType(ctx.variableType());
 
-        if (ctx.variableType().arrayOfUnnamedStruct() != null)
-            popVarPathItem();
+//        if (ctx.variableType().arrayOfUnnamedStruct() != null)
+//            popVarPathItem();
 
         var variable = new Variable(name, variableDescription, null, List.copyOf(varPath));
         if (ctx.variableConstraint() != null) {

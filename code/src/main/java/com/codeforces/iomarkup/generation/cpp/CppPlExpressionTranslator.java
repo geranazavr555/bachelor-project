@@ -5,19 +5,26 @@ import com.codeforces.iomarkup.type.PrimitiveType;
 import com.codeforces.iomarkup.type.StringType;
 import com.codeforces.iomarkup.type.Type;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 class CppPlExpressionTranslator extends CppTargetTranslator {
     private final String overridePath;
     private final PlExpression expression;
+    private final Map<String, String> trueLocal;
 
     public CppPlExpressionTranslator(PlExpression expression) {
         this(expression, null);
     }
 
     public CppPlExpressionTranslator(PlExpression expression, String overridePath) {
+        this(expression, overridePath, Map.of());
+    }
+
+    public CppPlExpressionTranslator(PlExpression expression, String overridePath, Map<String, String> trueLocal) {
         this.expression = expression;
         this.overridePath = overridePath;
+        this.trueLocal = trueLocal;
     }
 
     public String translate() {
@@ -44,10 +51,13 @@ class CppPlExpressionTranslator extends CppTargetTranslator {
 
     private String visitBinaryOperator(PlBinaryOperator plBinaryOperator) {
         if (plBinaryOperator.getOp() == PlBinaryOperator.Op.POW) {
-          throw new RuntimeException(); // todo
+            return "iomarkup::pow(%s, %s)".formatted(
+                    translate(plBinaryOperator.getExpressions().get(0)),
+                    translate(plBinaryOperator.getExpressions().get(1))
+            );
         }
 
-        return plBinaryOperator.getExpressions().stream().map(this::translate).collect(Collectors.joining(
+        return "(" + plBinaryOperator.getExpressions().stream().map(this::translate).collect(Collectors.joining(
                 " " + switch (plBinaryOperator.getOp()) {
                     case MULTIPLICATION -> "*";
                     case DIVISION -> "/";
@@ -69,7 +79,7 @@ class CppPlExpressionTranslator extends CppTargetTranslator {
                     case BITWISE_SHIFT_RIGHT -> ">>";
                     default -> throw new IllegalStateException("Unexpected value: " + plBinaryOperator.getOp());
                 } + " "
-        ));
+        )) + ")";
     }
 
     private String visitFunctionCall(PlFunctionCall plFunctionCall) {
@@ -118,19 +128,35 @@ class CppPlExpressionTranslator extends CppTargetTranslator {
     private String visitVarBinding(PlVarBinding plVarBinding) {
         var var = plVarBinding.getVariable();
         var sb = new StringBuilder();
-        if (overridePath == null) {
-            var path = var.getPath();
-            for (int i = 0; i < path.size(); i++) {
-                sb.append(path.get(i).iteration() ? "[" : "")
-                        .append(path.get(i).name())
-                        .append(path.get(i).iteration() ? "]" : "");
-                if (i == path.size() - 1 || i < path.size() - 1 && !path.get(i + 1).iteration())
-                    sb.append(".");
+
+        if (trueLocal.containsKey(var.getName()))
+            return trueLocal.get(var.getName());
+
+        if (plVarBinding.getFieldLocate() == null || plVarBinding.getFieldLocate().isEmpty()) {
+            if (overridePath == null) {
+                var path = var.getPath();
+                for (int i = 0; i < path.size(); i++) {
+                    sb.append(path.get(i).iteration() ? "[" : "")
+                            .append(path.get(i).name())
+                            .append(path.get(i).iteration() ? "]" : "");
+                    if (i == path.size() - 1 || i < path.size() - 1 && !path.get(i + 1).iteration())
+                        sb.append(".");
+                }
+            } else if (!overridePath.isEmpty()) {
+                sb.append(overridePath).append('.');
             }
-        } else if (!overridePath.isEmpty()) {
-            sb.append(overridePath).append('.');
+            sb.append(var.getName());
+        } else {
+            sb.append(var.getName());
+            for (int i = 0; i < plVarBinding.getFieldLocate().size(); ++i) {
+                var cur = plVarBinding.getFieldLocate().get(i);
+                if (cur.iterExpr() != null) {
+                    sb.append("[").append(translate(cur.iterExpr())).append("]");
+                } else {
+                    sb.append(".").append(cur.name());
+                }
+            }
         }
-        sb.append(var.getName());
         return sb.toString();
     }
 }

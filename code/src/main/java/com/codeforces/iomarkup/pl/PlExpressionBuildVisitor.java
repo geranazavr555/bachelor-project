@@ -220,7 +220,18 @@ public class PlExpressionBuildVisitor extends IoMarkupParserBaseVisitor<PlExpres
         for (var plSubscriptContext : ctx.plSubscript()) {
             expression = new PlSubscript(expression, visitPlSubscript(plSubscriptContext));
         }
-        return expression;
+
+        if (expression instanceof PlVarBinding plVarBinding && !isEmpty(ctx.plVarLocate())) {
+            for (var plVarLocateContext : ctx.plVarLocate()) {
+                plVarBinding.getFieldLocate().add(new PlFieldLocate(plVarLocateContext.NAME().getText(), null));
+                if (!isEmpty(plVarLocateContext.plSubscript()))
+                    plVarLocateContext.plSubscript().stream()
+                            .map(x -> new PlFieldLocate(null, visitPlSubscript(x)))
+                            .forEach(plVarBinding.getFieldLocate()::add);
+            }
+            return plVarBinding;
+        } else
+            return expression;
     }
 
     @Override
@@ -246,7 +257,7 @@ public class PlExpressionBuildVisitor extends IoMarkupParserBaseVisitor<PlExpres
         Variable variable = scope.getVariable(ctx.NAME().getText());
         if (variable == null)
             throw new RuntimeException(); // todo
-        return new PlVarBinding(variable);
+        return new PlVarBinding(variable, new ArrayList<>());
     }
 
     @Override

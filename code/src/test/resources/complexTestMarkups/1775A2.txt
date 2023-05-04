@@ -1,0 +1,21 @@
+# https://polygon.codeforces.com/p9ihuZG/Wind_Eagle/obl23-1-1-cf-ab?revision=25
+
+testcase {
+    s: string | 1 <= len(s) && len(s) <= 2 * 10 ** 5;
+}
+
+input {
+    t: int32 | 1 <= t && t <= 10 ** 4;
+    eoln;
+    testcases: testcase[i=1..t, sep='\n'];
+}
+
+testcaseOutput {
+    a: string;
+    b: string;
+    c: string;
+}
+
+output {
+    testcaseOutputs: testcaseOutput[i=1..input.t, sep='\n'];
+}

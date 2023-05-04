@@ -3,3 +3,5 @@
 **/gen
 *.iml
 *.log
+code/cache
+code/profile.properties

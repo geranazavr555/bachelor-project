@@ -21,7 +21,7 @@ plImplMultiplicativeBinary: plImplPowBinary (plImplMultiplicativeBinaryOp plImpl
 plImplPowBinary: plImplPrefixUnary (POW plImplPrefixUnary)*;
 plImplPrefixUnary: plImplPrefixUnaryOp* plImplHighestPriority;
 
-plImplHighestPriority: ((LPAR plExpression RPAR) | plFunctionCall | plValue | plVarBinding) plSubscript*;
+plImplHighestPriority: ((LPAR plExpression RPAR) | plFunctionCall | plValue | plVarBinding) plSubscript* (DOT plVarLocate)*;
 
 plImplEqualityOp: EQUALS | NOT_EQUALS;
 plImplRelationalOp: GREATER | LESS | GREATER_EQUAL | LESS_EQUAL;
@@ -32,6 +32,8 @@ plImplBitwiseShiftOp: LESS LESS | GREATER GREATER;
 
 plFunctionCall: NAME LPAR plImplFunctionArgs? RPAR;
 plImplFunctionArgs: plExpression (COMMA plExpression)*;
+
+plVarLocate: NAME plSubscript*;
 
 plVarBinding: NAME;
 

@@ -1,0 +1,26 @@
+# https://polygon.codeforces.com/p0YwEyi/parfenov_2001/unique-palindromes-hard
+
+testcase {
+    n: int32 | 3 <= n && n <= 2 * 10 ** 5;
+    k: int32 | 1 <= k && k <= 20;
+    eoln;
+    x: int32[i=1..k, sep=' '] | 3 <= x[i] && x[i] <= n;
+    eoln;
+    c: int32[i=1..k, sep=' '] | 3 <= c[i] && c[i] <=
+            ((n + 1) * n / 2 < 10 ** 9 ? (n + 1) * n / 2 : 10 ** 9);
+}
+
+input {
+    t: int32 | 1 <= t && t <= 10 ** 4;
+    eoln;
+    testcases: testcase[i=1..t, sep='\n'];
+}
+
+output {
+    testcaseOutputs: array[i=1..input.t, sep='\n'] of {
+        verdict: string | verdict == "YES" || verdict == "NO";
+        if (verdict == "YES") {
+            s: string | len(s) == input.testcases[i].n;
+        }
+    };
+}

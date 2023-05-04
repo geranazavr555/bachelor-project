@@ -1,0 +1,18 @@
+# https://polygon.codeforces.com/p3Bkdql/parfenov_2001/random-walk
+
+edge(n: int32) {
+    u: int32 | 1 <= u && u <= n;
+    v: int32 | 1 <= v && v <= n && u != v;
+}
+
+input {
+    n: int32 | 2 <= n && n <= 2 * 10 ** 5;
+    s: int32 | 1 <= s && s <= n;
+    t: int32 | 1 <= t && t <= n && s != t;
+    eoln;
+    edges: edge(n)[i=1..n-1, sep='\n'];
+}
+
+output {
+    c: int32[i=1..input.n, sep=' '] | 0 <= c[i] && c[i] <= 998'244'353;
+}

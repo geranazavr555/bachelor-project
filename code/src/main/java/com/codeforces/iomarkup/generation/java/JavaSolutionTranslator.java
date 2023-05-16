@@ -10,6 +10,24 @@ import java.util.List;
 public class JavaSolutionTranslator implements FilesTranslator {
     private static final String TEMPLATE = """
             public class Solution {
+                private static class IoMarkup {
+                    private IoMarkup() {}
+            
+                    int pow(int a, int b)
+                    {
+                        if (b == 0) return 1;
+                        if (b % 2 == 1) return a * pow(a, b - 1);
+                        return pow(a * a, b / 2);
+                    }
+            
+                    long pow(long a, long b)
+                    {
+                        if (b == 0) return 1L;
+                        if (b % 2 == 1) return a * pow(a, b - 1L);
+                        return pow(a * a, b / 2L);
+                    }
+                }
+            
                 // Structure declarations
                 %s
 

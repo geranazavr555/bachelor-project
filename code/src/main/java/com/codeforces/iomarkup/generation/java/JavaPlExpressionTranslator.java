@@ -44,7 +44,10 @@ class JavaPlExpressionTranslator extends JavaTargetTranslator {
 
     private String visitBinaryOperator(PlBinaryOperator plBinaryOperator) {
         if (plBinaryOperator.getOp() == PlBinaryOperator.Op.POW) {
-          throw new RuntimeException(); // todo
+            return "IoMarkup.pow(%s, %s)".formatted(
+                    translate(plBinaryOperator.getExpressions().get(0)),
+                    translate(plBinaryOperator.getExpressions().get(1))
+            );
         }
 
         return plBinaryOperator.getExpressions().stream().map(this::translate).collect(Collectors.joining(

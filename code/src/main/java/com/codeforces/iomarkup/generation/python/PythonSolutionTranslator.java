@@ -10,6 +10,10 @@ import java.util.List;
 
 public class PythonSolutionTranslator implements FilesTranslator {
     private static final String TEMPLATE = """
+            def iomarkup_div(x, y):
+                return x / y if isinstance(x, float) or isinstance(y, float) else x // y
+            
+            
             class Scanner:
                 def __init__(self, next_line_getter):
                     self._next_line_getter = next_line_getter

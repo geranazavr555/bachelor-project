@@ -43,14 +43,15 @@ class PythonPlExpressionTranslator extends PythonTargetTranslator {
     }
 
     private String visitBinaryOperator(PlBinaryOperator plBinaryOperator) {
-        if (plBinaryOperator.getOp() == PlBinaryOperator.Op.POW) {
-          throw new RuntimeException(); // todo
+        if (plBinaryOperator.getOp() == PlBinaryOperator.Op.DIVISION) {
+            return "iomarkup_div(%s, %s)".formatted(
+                    translate(plBinaryOperator.getExpressions().get(0)),
+                    translate(plBinaryOperator.getExpressions().get(1))
+            );
         }
-
         return plBinaryOperator.getExpressions().stream().map(this::translate).collect(Collectors.joining(
                 " " + switch (plBinaryOperator.getOp()) {
                     case MULTIPLICATION -> "*";
-                    case DIVISION -> "/";
                     case MODULO -> "%";
                     case ADDITION -> "+";
                     case SUBTRACTION -> "-";
@@ -63,10 +64,11 @@ class PythonPlExpressionTranslator extends PythonTargetTranslator {
                     case BITWISE_AND -> "&";
                     case BITWISE_XOR -> "^";
                     case BITWISE_OR -> "|";
-                    case LOGICAL_AND -> "&&";
-                    case LOGICAL_OR -> "||";
+                    case LOGICAL_AND -> "and";
+                    case LOGICAL_OR -> "or";
                     case BITWISE_SHIFT_LEFT -> "<<";
                     case BITWISE_SHIFT_RIGHT -> ">>";
+                    case POW -> "**";
                     default -> throw new IllegalStateException("Unexpected value: " + plBinaryOperator.getOp());
                 } + " "
         ));
@@ -76,24 +78,24 @@ class PythonPlExpressionTranslator extends PythonTargetTranslator {
         if (!"len".equals(plFunctionCall.getFunction().getName()))
             throw new AssertionError();
 
-        return translate(plFunctionCall.getArgExpressions().get(0)) + ".size()"; // todo .length()
+        return "len(" + translate(plFunctionCall.getArgExpressions().get(0)) + ")";
     }
 
     private String visitIfOperator(PlIfOperator plIfOperator) {
-        return "((%s) ? (%s) : (%s))".formatted(
-                translate(plIfOperator.getCondition()),
+        return "(%s if %s else %s)".formatted(
                 translate(plIfOperator.getTrueExpression()),
+                translate(plIfOperator.getCondition()),
                 translate(plIfOperator.getFalseExpression())
         );
     }
 
     private String visitSubscript(PlSubscript plSubscript) { // todo .charAt()
-        return translate(plSubscript.getArrayExpression()) + ".get(" + translate(plSubscript.getIndexExpression()) + ")";
+        return translate(plSubscript.getArrayExpression()) + "[" + translate(plSubscript.getIndexExpression()) + "]";
     }
 
     private String visitUnaryOperator(PlUnaryOperator plUnaryOperator) {
         return switch (plUnaryOperator.getOp()) {
-            case LOGICAL_NOT -> "!";
+            case LOGICAL_NOT -> "not ";
             case BITWISE_NOT -> "~";
             case MINUS -> "-";
         } + translate(plUnaryOperator.getExpression());
@@ -104,11 +106,10 @@ class PythonPlExpressionTranslator extends PythonTargetTranslator {
         T val = value.getValue();
         if (type instanceof PrimitiveType primitiveType) {
             return switch (primitiveType) {
-                case BOOL, FLOAT32, INT32 -> val.toString();
+                case BOOL -> "true".equals(val.toString()) ? "True" : "False";
                 case CHAR -> "'" + val + "'";
-                case UINT32, INT64 -> val + "L";
-                case UINT64 -> "new java.math.BigInteger(\"%s\")".formatted(val);
-                case FLOAT64 -> val.toString() + "F";
+                case INT32, INT64, UINT32, UINT64, FLOAT32, FLOAT64 -> val.toString();
+                default -> throw new AssertionError();
             };
         } else if (type instanceof StringType) {
             return "\"" + val + "\"";

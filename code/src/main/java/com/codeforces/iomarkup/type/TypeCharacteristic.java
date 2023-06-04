@@ -55,4 +55,8 @@ public enum TypeCharacteristic {
     public static Set<TypeCharacteristic> closure(TypeCharacteristic... characteristics) {
         return Collections.unmodifiableSet(modifiableClosure(characteristics));
     }
+
+    public static boolean isSubset(Set<TypeCharacteristic> set, Set<TypeCharacteristic> subset) {
+        return set.containsAll(subset);
+    }
 }

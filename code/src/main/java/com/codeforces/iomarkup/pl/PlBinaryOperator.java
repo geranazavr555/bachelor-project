@@ -1,13 +1,12 @@
 package com.codeforces.iomarkup.pl;
 
+import com.codeforces.iomarkup.type.PrimitiveType;
+import com.codeforces.iomarkup.type.Type;
 import com.codeforces.iomarkup.type.TypeCharacteristic;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @AllArgsConstructor
 @Getter
@@ -20,33 +19,62 @@ public class PlBinaryOperator extends PlExpression {
         this.expressions = List.of(left, right);
     }
 
+    @Override
+    public Type getType() {
+        for (PlExpression expression : expressions) {
+            var type = expression.getType();
+            for (TypeCharacteristic characteristic : op.requiredTypeCharacteristics) {
+                if (!characteristic.is(type)) {
+                    throw new RuntimeException();
+                }
+            }
+        }
+
+        if (op.returnType != null)
+            return op.returnType;
+
+        List<PrimitiveType> primitiveTypes = new ArrayList<>(expressions.size());
+        for (PlExpression expression : expressions) {
+            var type = expression.getType();
+            if (!(type instanceof PrimitiveType primitiveType))
+                return expressions.get(0).getType();
+
+            primitiveTypes.add(primitiveType);
+        }
+
+        primitiveTypes.sort(null);
+        return primitiveTypes.get(primitiveTypes.size() - 1);
+    }
+
     public enum Op {
-        MULTIPLICATION(Associativity.LEFT, TypeCharacteristic.NUMERIC),
-        DIVISION(Associativity.LEFT, TypeCharacteristic.NUMERIC),
-        MODULO(Associativity.LEFT, TypeCharacteristic.INTEGER),
-        ADDITION(Associativity.LEFT, TypeCharacteristic.NUMERIC),
-        SUBTRACTION(Associativity.LEFT, TypeCharacteristic.NUMERIC),
-        GREATER(null, TypeCharacteristic.COMPARABLE),
-        GREATER_OR_EQUAL(null, TypeCharacteristic.COMPARABLE),
-        LESS(null, TypeCharacteristic.COMPARABLE),
-        LESS_OR_EQUAL(null, TypeCharacteristic.COMPARABLE),
-        EQUAL(Associativity.LEFT, TypeCharacteristic.CAN_EQUAL),
-        NOT_EQUAL(Associativity.LEFT, TypeCharacteristic.CAN_EQUAL),
-        BITWISE_AND(Associativity.LEFT, TypeCharacteristic.INTEGER),
-        BITWISE_XOR(Associativity.LEFT, TypeCharacteristic.INTEGER),
-        BITWISE_OR(Associativity.LEFT, TypeCharacteristic.INTEGER),
-        LOGICAL_AND(Associativity.LEFT, TypeCharacteristic.BOOL),
-        LOGICAL_OR(Associativity.LEFT, TypeCharacteristic.BOOL),
-        POW(Associativity.RIGHT, TypeCharacteristic.NUMERIC),
-        BITWISE_SHIFT_LEFT(Associativity.LEFT, TypeCharacteristic.INTEGER),
-        BITWISE_SHIFT_RIGHT(Associativity.LEFT, TypeCharacteristic.INTEGER);
+        MULTIPLICATION(Associativity.LEFT, null, TypeCharacteristic.NUMERIC),
+        DIVISION(Associativity.LEFT, null, TypeCharacteristic.NUMERIC),
+        MODULO(Associativity.LEFT, null, TypeCharacteristic.INTEGER),
+        ADDITION(Associativity.LEFT, null, TypeCharacteristic.NUMERIC),
+        SUBTRACTION(Associativity.LEFT, null, TypeCharacteristic.NUMERIC),
+        GREATER(null, PrimitiveType.BOOL, TypeCharacteristic.COMPARABLE),
+        GREATER_OR_EQUAL(null, PrimitiveType.BOOL, TypeCharacteristic.COMPARABLE),
+        LESS(null, PrimitiveType.BOOL, TypeCharacteristic.COMPARABLE),
+        LESS_OR_EQUAL(null, PrimitiveType.BOOL, TypeCharacteristic.COMPARABLE),
+        EQUAL(Associativity.LEFT, PrimitiveType.BOOL, TypeCharacteristic.CAN_EQUAL),
+        NOT_EQUAL(Associativity.LEFT, PrimitiveType.BOOL, TypeCharacteristic.CAN_EQUAL),
+        BITWISE_AND(Associativity.LEFT, null, TypeCharacteristic.INTEGER),
+        BITWISE_XOR(Associativity.LEFT, null, TypeCharacteristic.INTEGER),
+        BITWISE_OR(Associativity.LEFT, null, TypeCharacteristic.INTEGER),
+        LOGICAL_AND(Associativity.LEFT, PrimitiveType.BOOL, TypeCharacteristic.BOOL),
+        LOGICAL_OR(Associativity.LEFT, PrimitiveType.BOOL, TypeCharacteristic.BOOL),
+        POW(Associativity.RIGHT, null, TypeCharacteristic.NUMERIC),
+        BITWISE_SHIFT_LEFT(Associativity.LEFT, null, TypeCharacteristic.INTEGER),
+        BITWISE_SHIFT_RIGHT(Associativity.LEFT, null, TypeCharacteristic.INTEGER);
 
         @Getter
         private final Associativity associativity;
         private final Set<TypeCharacteristic> requiredTypeCharacteristics;
+        private final Type returnType;
 
-        Op(Associativity associativity, TypeCharacteristic... characteristics) {
+        Op(Associativity associativity, Type returnType, TypeCharacteristic... characteristics) {
             this.associativity = associativity;
+            this.returnType = returnType;
             this.requiredTypeCharacteristics = Collections.unmodifiableSet(EnumSet.of(characteristics[0], characteristics));
         }
     }

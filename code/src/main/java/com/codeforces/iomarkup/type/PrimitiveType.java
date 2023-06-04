@@ -29,4 +29,15 @@ public enum PrimitiveType implements Type {
     public Set<TypeCharacteristic> getCharacteristics() {
         return characteristics;
     }
+
+    @Override
+    public boolean isAssignableFrom(Type other) {
+        if (!TypeCharacteristic.isSubset(other.getCharacteristics(), getCharacteristics()))
+            return false;
+
+        if (other instanceof PrimitiveType otherPrimitiveType)
+            return compareTo(otherPrimitiveType) >= 0;
+
+        return false;
+    }
 }

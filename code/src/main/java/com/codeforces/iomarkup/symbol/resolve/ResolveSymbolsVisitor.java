@@ -189,6 +189,10 @@ public class ResolveSymbolsVisitor extends IoMarkupParserBaseVisitor<Object> {
                 throw new RuntimeException(); // todo
 
             result = new ParametrizedDescription(type, visitNamedTypeParameters(ctx.namedTypeParameters()));
+            var args = ((ParametrizedDescription) result).arguments();
+            var constructor = scope().getConstructor(type.getName());
+            if (constructor.getArguments().size() != args.size())
+                throw new RuntimeException();
         }
 
         if (arrayParameters != null) {

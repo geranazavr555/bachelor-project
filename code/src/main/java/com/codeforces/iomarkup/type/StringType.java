@@ -20,4 +20,9 @@ public class StringType extends ArrayType {
     public static StringType getInstance() {
         return INSTANCE;
     }
+
+    @Override
+    public boolean isAssignableFrom(Type other) {
+        return other instanceof StringType;
+    }
 }

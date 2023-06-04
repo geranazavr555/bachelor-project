@@ -7,9 +7,15 @@ import com.codeforces.iomarkup.symbol.scope.Scope;
 
 import java.util.List;
 
-public class JavaSolutionTranslator implements FilesTranslator {
-    private static final String TEMPLATE = """
-            public class Solution {
+public class JavaGraderTranslator implements FilesTranslator {
+    private static final String TEMPLATE_MAIN = """
+            package problem;
+            
+            import problem.Solution;
+            
+            import static problem.Structures.*;
+            
+            public class Grader {
                 private static class IoMarkup {
                     private IoMarkup() {}
             
@@ -27,15 +33,12 @@ public class JavaSolutionTranslator implements FilesTranslator {
                         return pow(a * a, b / 2L);
                     }
                 }
-            
-                // Structure declarations
-                %s
 
                 private final java.util.Scanner in;
                 private final java.io.PrintStream out;
                 private Input input;
 
-                public Solution(java.util.Scanner in, java.io.PrintStream out) {
+                public Grader(java.util.Scanner in, java.io.PrintStream out) {
                     this.in = in;
                     this.out = out;
                 }
@@ -52,11 +55,19 @@ public class JavaSolutionTranslator implements FilesTranslator {
 
                 public static void main(java.lang.String[] args) {
                     try (java.util.Scanner inputScanner = new java.util.Scanner(java.lang.System.in)) {
-                        Solution solution = new Solution(inputScanner, java.lang.System.out);
+                        Grader solution = new Grader(inputScanner, java.lang.System.out);
                         solution.input = solution.readInput();
-                        solution.writeOutput(solution.solve(solution.input));
+                        solution.writeOutput(new Solution().solve(solution.input));
                     }
                 }
+            }
+            """;
+
+    private static final String TEMPLATE_H = """
+            package problem;
+                        
+            public class Structures {
+                %s
             }
             """;
 
@@ -64,7 +75,7 @@ public class JavaSolutionTranslator implements FilesTranslator {
     private final JavaGraderReadTranslator javaGraderReadTranslator;
     private final JavaGraderWriteTranslator javaGraderWriteTranslator;
 
-    public JavaSolutionTranslator(Scope globalScope) {
+    public JavaGraderTranslator(Scope globalScope) {
         javaStructDeclarationsTranslator = new JavaStructDeclarationsTranslator(globalScope);
         javaGraderReadTranslator = new JavaGraderReadTranslator(globalScope, globalScope.getConstructors());
         javaGraderWriteTranslator = new JavaGraderWriteTranslator(globalScope, globalScope.getConstructors());
@@ -75,11 +86,17 @@ public class JavaSolutionTranslator implements FilesTranslator {
         return List.of(
                 new TranslatedFile(
                         TargetComponent.VALIDATOR,
-                        "Solution.java",
-                        TEMPLATE.formatted(
-                                javaStructDeclarationsTranslator.translate(),
+                        "Grader.java",
+                        TEMPLATE_MAIN.formatted(
                                 javaGraderReadTranslator.translate(),
                                 javaGraderWriteTranslator.translate()
+                        )
+                ),
+                new TranslatedFile(
+                        TargetComponent.VALIDATOR,
+                        "Structures.java",
+                        TEMPLATE_H.formatted(
+                                javaStructDeclarationsTranslator.translate()
                         )
                 )
         );

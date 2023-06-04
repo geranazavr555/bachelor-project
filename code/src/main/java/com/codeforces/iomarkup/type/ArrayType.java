@@ -1,13 +1,18 @@
 package com.codeforces.iomarkup.type;
 
 import com.codeforces.iomarkup.pl.PlExpression;
+import lombok.Getter;
 
 import java.util.Collections;
 import java.util.Set;
 
 public class ArrayType implements Type {
     protected final Set<TypeCharacteristic> characteristics;
+
+    @Getter
     private final PlExpression lengthExpression;
+
+    @Getter
     private Type componentType;
 
     public ArrayType(Type componentType) {
@@ -29,5 +34,19 @@ public class ArrayType implements Type {
     @Override
     public Set<TypeCharacteristic> getCharacteristics() {
         return Collections.unmodifiableSet(characteristics);
+    }
+
+    @Override
+    public boolean isAssignableFrom(Type other) {
+        if (!TypeCharacteristic.isSubset(componentType.getCharacteristics(), other.getCharacteristics()) ||
+            !TypeCharacteristic.isSubset(other.getCharacteristics(), componentType.getCharacteristics()))
+            return false;
+
+        if (other instanceof ArrayType arrayType) {
+            return componentType.isAssignableFrom(arrayType.getComponentType()) &&
+                   arrayType.getComponentType().isAssignableFrom(componentType);
+        }
+
+        return false;
     }
 }

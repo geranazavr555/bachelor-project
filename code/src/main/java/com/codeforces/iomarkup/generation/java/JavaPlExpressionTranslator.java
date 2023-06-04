@@ -16,6 +16,7 @@ class JavaPlExpressionTranslator extends JavaTargetTranslator {
     }
 
     public JavaPlExpressionTranslator(PlExpression expression, String overridePath) {
+        expression.ensureType();
         this.expression = expression;
         this.overridePath = overridePath;
     }

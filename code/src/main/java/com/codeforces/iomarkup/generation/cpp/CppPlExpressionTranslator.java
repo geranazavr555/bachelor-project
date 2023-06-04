@@ -22,6 +22,7 @@ class CppPlExpressionTranslator extends CppTargetTranslator {
     }
 
     public CppPlExpressionTranslator(PlExpression expression, String overridePath, Map<String, String> trueLocal) {
+        expression.ensureType();
         this.expression = expression;
         this.overridePath = overridePath;
         this.trueLocal = trueLocal;

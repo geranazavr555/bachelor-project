@@ -16,6 +16,7 @@ class PythonPlExpressionTranslator extends PythonTargetTranslator {
     }
 
     public PythonPlExpressionTranslator(PlExpression expression, String overridePath) {
+        expression.ensureType();
         this.expression = expression;
         this.overridePath = overridePath;
     }

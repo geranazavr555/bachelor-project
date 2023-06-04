@@ -24,6 +24,7 @@ import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -42,6 +43,23 @@ public class ComplexTest {
     private final InvokerModule invokerModule = new InvokerModule();
     private final Injector injector = Guice.createInjector(invokerModule);
     private final IRunService runService = injector.getInstance(IRunService.class);
+
+    private int totalProblemCount;
+    private int totalTestCount;
+    private int realOkGenOk;
+    private int realOkGenFail;
+    private int realFailGenOk;
+    private int realFailGenFail;
+
+    @BeforeEach
+    public void init() {
+        totalProblemCount = 0;
+        totalTestCount = 0;
+        realOkGenOk = 0;
+        realOkGenFail = 0;
+        realFailGenOk = 0;
+        realFailGenFail = 0;
+    }
 
     @Test
     public void test() throws IOException {
@@ -63,9 +81,17 @@ public class ComplexTest {
 
             testSingle(name, getPackageUrl(firstLine), String.join(System.lineSeparator(), lines));
         }
+
+        logger.info("Total problems: %d".formatted(totalProblemCount));
+        logger.info("Total tests: %d".formatted(totalTestCount));
+        logger.info("Real Ok Gen Ok: %d".formatted(realOkGenOk));
+        logger.info("Real Ok Gen Fail: %d".formatted(realOkGenFail));
+        logger.info("Real Fail Gen Ok: %d".formatted(realFailGenOk));
+        logger.info("Real Fail Gen Fail: %d".formatted(realFailGenFail));
     }
 
     private void testSingle(String name, String packageUrl, String ioMarkupString) {
+        totalProblemCount++;
         var ioMarkup = new IoMarkup(ioMarkupString);
 
         Path packagePath = getPackagePath(name, packageUrl);
@@ -97,10 +123,11 @@ public class ComplexTest {
         var validatorTestset = validator.getTestset();
         logger.info("Testing validator tests");
         for (int i = 1; validatorTestset != null && i <= validatorTestset.getTestCount(); ++i) {
+            totalTestCount++;
             logger.info("Testing validator test #" + i);
             var test = validatorTestset.getTests().get(i - 1);
-            if (test.getVerdict() != ProblemValidatorTest.Verdict.VALID)
-                continue;
+
+            boolean realOk = test.getVerdict() == ProblemValidatorTest.Verdict.VALID;
 
             Interop.RunRequest request = Interop.RunRequest.newBuilder()
                     .setRequestId(RandomUtil.getRandomToken())
@@ -133,7 +160,16 @@ public class ComplexTest {
             var response = runService.run(request, null);
             var processResult = response.getProcessResult();
             Assertions.assertEquals(Interop.ProcessResult.Verdict.OK, processResult.getVerdict());
-            Assertions.assertEquals(0, processResult.getExitCode());
+
+            if (realOk) {
+                Assertions.assertEquals(0, processResult.getExitCode());
+                realOkGenOk++;
+            } else {
+                if (processResult.getExitCode() == 0)
+                    realFailGenOk++;
+                else
+                    realFailGenFail++;
+            }
         }
 
         logger.info("Testing real tests");
@@ -161,6 +197,7 @@ public class ComplexTest {
 
                 var test = testset.getTests().get(i - 1);
                 if (test.getMethod() == ProblemTest.Method.MANUAL) {
+                    totalTestCount++;
                     request.setInput(
                             Interop.Input.newBuilder()
                                     .setTextInput(
@@ -175,9 +212,15 @@ public class ComplexTest {
                     var processResult = response.getProcessResult();
                     Assertions.assertEquals(Interop.ProcessResult.Verdict.OK, processResult.getVerdict());
                     Assertions.assertEquals(0, processResult.getExitCode());
+
+                    realOkGenOk++;
                 }
             }
         }
+    }
+
+    private void testChecker() {
+
     }
 
     @SneakyThrows

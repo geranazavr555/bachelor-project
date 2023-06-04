@@ -3,6 +3,7 @@ package com.codeforces.iomarkup.symbol;
 import com.codeforces.iomarkup.type.Type;
 import com.codeforces.iomarkup.type.TypeCharacteristic;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -24,6 +25,6 @@ public final class Function extends Symbol {
     }
 
     public List<Set<TypeCharacteristic>> requiredArgumentTypeCharacteristics() {
-        return requiredArgumentTypeCharacteristics;
+        return Collections.unmodifiableList(requiredArgumentTypeCharacteristics);
     }
 }

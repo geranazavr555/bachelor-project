@@ -8,7 +8,6 @@ import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-//        var ioMarkup = new IoMarkup(Path.of("C:\\Programing\\bachelor-thesis\\code-repo\\code\\src\\test\\resources\\complexTestMarkups\\1772F.txt"));
         var ioMarkup = new IoMarkup("""
                 case {
                     n: int32;
